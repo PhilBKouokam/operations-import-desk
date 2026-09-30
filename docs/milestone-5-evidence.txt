@@ -1,0 +1,76 @@
+OPERATIONS IMPORT DESK — M5 HANDOFF EVIDENCE
+Recorded September 30, 2026. Frozen v1.1 scope; M1–M4 accepted.
+
+1. DELIVERABLES
+README; native setup and demo launcher; explicit-schema generated OpenAPI with Nest route-inventory check; architecture Mermaid diagram; three ADRs; concise operational runbook; sample CSVs retained; CI workflow; raw measurement harness/results and interpretation; evidence/limitations; 891-word article; five-minute recorded-demo outline; draft Ivan message. Source ZIP and cloneable Git bundle preserve the complete repository. No outreach sent, no public deployment or GitHub URL invented.
+
+No application source changed under apps/api/src, apps/worker/src, apps/web/src or packages/input/src compared with accepted M4 e89cbee. Only test diagnostic logging (safe import IDs in A08/A09), scripts, CI and documentation changed. No product feature or reliability architecture was added.
+
+2. EXACT VERIFICATION COMMANDS / ENVIRONMENT
+Ubuntu 24.04.3 LTS x86_64, Node 24.19.0, npm 11.9.0, Java 17. MongoDB 8.0.15, Redis 7.4.6, Keycloak 26.4.0. Browser: real Chromium 153.0.8010.0 via /tmp/chromium, the explicit compatible-browser fallback documented in M4. Normal Playwright CDN installer was not rerun in M5.
+
+Provisioning (source checkout):
+  bash scripts/install-native-services.sh /tmp/odi-m5-clean-runtime > /tmp/odi-m5-install.txt 2>&1
+Result: exit 0; new official release downloads, gzip validation, extraction and Redis compilation succeeded. SHA-256 fingerprints preserved in test-output/m5-download-sha256.txt. Binaries were not copied from the earlier workspace runtime. Checksums are observations, not independently authenticated publisher signatures.
+
+Clean checkout (source commit 85294a8):
+  git clone --no-local . /tmp/odi-m5-clean-checkout
+  cd /tmp/odi-m5-clean-checkout
+  npm ci --ignore-scripts
+  npm run check
+  npm run build:web
+  npm run docs:check
+  source /tmp/odi-m5-clean-runtime/env.sh
+  bash scripts/test-real-services.sh
+  REAL_SERVICE_SUITE=test:m3:recovery bash scripts/test-real-services.sh
+  PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/tmp/chromium bash scripts/test-browser-services.sh
+Results: all commands exit 0. Fresh npm install 176 packages; typecheck both frontend/backend; 41/41 unit tests (354.265131 ms test runner); backend build; web production build (25 modules); generated OpenAPI verified for all nine Nest routes. Real MongoDB/Keycloak API/security: 23/23, 33,966.976653 ms. Real MongoDB/Redis/BullMQ recovery: 13/13, 224,779.074088 ms. Real Chromium/Keycloak/Mongo/Redis/API/worker/UI: 9/9, 1.1 min. Full command output retained in test-output/m5-clean-*.txt.
+
+After documentation and test-diagnostic changes:
+  git restore docs/test-output
+  git pull --ff-only
+  npm run docs:check
+  source /tmp/odi-m5-clean-runtime/env.sh
+  M3_TEST_PATTERN='A08 Redis unavailable|A09 actual SIGKILL' REAL_SERVICE_SUITE=test:m3 bash scripts/test-real-services.sh
+The restore only removed newly generated screenshots in this task-owned temporary clone. Fast-forward to b805af9; no application source change. OpenAPI check exit 0. Drills exit 0: 2/2 pass, 128,874.974835 ms. A08 recovered 7c9baa3b-a959-4eea-87eb-58261446fafa and 6b21876e-f70e-4205-bdfc-4bfa6136a4bb as COMPLETED at attempt 1. A09 recovered 57f858a2-4bc5-446b-81d4-3a8e9c3b3dff as COMPLETED at attempt 2 after 66,116 ms. Raw output: test-output/m5-runbook-drills.txt.
+
+Native demo launcher smoke (source checkout, fresh disposable services):
+  source /tmp/odi-m5-clean-runtime/env.sh
+  python3 scripts/test-demo-startup.py
+Exit 0. UI HTTP 200, API Mongo readiness HTTP 200, worker Mongo/Redis readiness HTTP 200, exact Keycloak discovery issuer. Owned process group stopped after verification. This proves native startup, not Docker or an additional browser workflow. Output: test-output/m5-demo-smoke.txt and m5-demo-launch.txt.
+
+Additional validation:
+  git diff --check
+  git diff e89cbee -- apps/api/src apps/worker/src apps/web/src packages/input/src
+Both exit 0 with no output (no whitespace defects; application source unchanged).
+Python yaml.safe_load parsed .github/workflows/verify.yml; native job exists. This is YAML parsing, not a hosted Actions schema/execution guarantee. Official actions/checkout, setup-node and setup-java v4 action.yml resources returned HTTP 200. No hosted Actions run occurred.
+
+3. A18 HANDOFF
+PARTIAL, not fully passed. Fresh native distribution installation, clean-checkout build/unit/API/recovery/browser paths pass. Native browser tests confirm imported synthetic accounts and seeded viewer-owned data. Manual demo starts with seeded accounts and empty history; operator creates data from samples. Runbook explains recovery and correlation without editing production-like state.
+
+M1-Docker remains OPEN / UNPASSED: command -v docker found no executable. Compose startup was not attempted or marked passed. Existing Compose covers dependencies only; all-six-service containerization/startup remains unimplemented/unverified. First Docker-capable environment must complete that explicit gate. No independent second engineer has executed the handoff. Hosted CI is configured but not run.
+
+4. A19 BOUNDED MEASUREMENTS
+Executed in source checkout after accepted M3 correctness evidence:
+  MONGOD_BIN=/tmp/odi-workspace/m2-runtime/mongodb-linux-x86_64-ubuntu2204-8.0.15/bin/mongod REDIS_SERVER_BIN=/tmp/redis-7.4.6/src/redis-server npm run measure
+Exit 0. Production parser/store/dispatcher/consumer/publication with real standalone Mongo/Redis/BullMQ. Separate consumer processes. All 18 imports completed on attempt 1 with exact row counts.
+100 rows: claim-to-publication 15 ms, acceptance-to-publication 37 ms, sampled worker RSS 86.9 MiB, result BSON 17,773 B, accepted CSV 5,882 B, errors CSV 133 B.
+1,000 rows: 63 ms, 71 ms, 107.8 MiB, result BSON 179,873 B, accepted CSV 59,982 B, errors CSV 133 B.
+Eight concurrent 1,000-row imports: one worker dispatch-to-observed-completion 342.62 ms; two worker processes 230.25 ms. Single run/scenario, shared host, no statistical speedup/capacity claim. Memory sampled at 10 ms includes process baseline, excludes DB/Redis; may miss spikes. Immediate dispatch excludes normal five-second scheduler wait. HTTP/OIDC/UI excluded. Full environment, cgroup limits, timing definitions, input/document sizes and IDs in test-output/m5-measurements.json and measurements.md.
+
+5. CI AND DEMO STATUS
+Workflow specifies npm clean install, typecheck, backend/web build, unit, deterministic OpenAPI check, real native Mongo/Keycloak API security, full M3 including ten-minute A20, and real browser workflow. Local equivalents passed as detailed above, except full ten-minute A20 is retained M3 evidence rather than a new M5 run. Hosted CI remains UNVERIFIED; no badge or green hosted result claimed.
+
+Recommended presentation is reproducible local demo plus recorded walkthrough using docs/demo-walkthrough.md. Script/outline exists; no video has been recorded. No public demo or public GitHub repository was created: repository has no configured remote and no destination was supplied. Deliverable is GitHub-ready source plus full Git bundle. Production/dev-realm deployment is not claimed.
+
+6. ARTICLE / POSITIONING
+Location docs/article.md; 891 whitespace-delimited words including title/headings. Exact requested title. Independent demonstration/public-source caveat near beginning, first professional role stated, unfamiliar technologies not claimed as prior professional experience. Posting's professional-experience requirement acknowledged. One short CalorieBank paragraph. Six specific senior-review questions. AI assistance disclosed in article and README. Official job/case-study pages rechecked with direct HTTPS HTTP 200; search-provider retrieval failed. No private client/system assertions.
+
+7. FAILURES, LIMITS AND LEARNING
+No new application correctness/security defect was found in these M5 checks. Search-provider official-page fetching failed; direct official HTTPS worked. An optional BeautifulSoup parsing attempt found the package absent; standard-library HTMLParser was used instead. Neither affects application evidence. npm emitted environment proxy-setting warnings; tests/builds still passed. Earlier M3/M4 failures and fixes remain in their historical reports.
+
+Remaining limits: Docker; hosted CI; public publishing/deployment; recorded video; independent handoff reviewer; native browser visibility lifecycle; other browsers/devices/manual screen-reader evaluation; standalone rather than replica-set failover evidence; no requestId-to-importId persisted/access-log correlation; no production capacity/security claim. See evidence.md for the complete concise list. No known unresolved tested application correctness/security blocker.
+
+Handoff lesson: reproducibility requires recording runtime versions, exact commands, service topology and exceptions, not merely listing dependencies. Measurements need explicit start/end boundaries and memory scope. Generated contract route checks complement, but do not replace, HTTP behavior tests. A local green run is not a hosted CI or container-startup claim.
+
+Packaging checks: repository-local Markdown links resolved; article exact title and 891-word count verified; generated OpenAPI current. Source/Git archive integrity and clone validation are recorded in packaging-verification.txt alongside the deliverables.

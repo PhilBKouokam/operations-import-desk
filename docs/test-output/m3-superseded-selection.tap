@@ -1,0 +1,113 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 test:m3:recovery
+> npm run build && node --test --test-reporter=tap --test-timeout=180000 --test-concurrency=1 --test-name-pattern="^(?!A20 ten minutes)" dist/apps/worker/test/integration.test.js
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 build
+> tsc -p tsconfig.json
+
+TAP version 13
+# Subtest: A01–A03 real BullMQ validates happy, mixed, all-invalid; atomic rows/counts and header-only export
+ok 1 - A01–A03 real BullMQ validates happy, mixed, all-invalid; atomic rows/counts and header-only export
+  ---
+  duration_ms: 1008.441778
+  type: 'test'
+  ...
+# Subtest: A08 Redis unavailable before acceptance and after acceptance; bounded enqueue failure then real redispatch
+ok 2 - A08 Redis unavailable before acceptance and after acceptance; bounded enqueue failure then real redispatch
+  ---
+  duration_ms: 61192.674895
+  type: 'test'
+  ...
+# Subtest: A20 dispatcher dies after reservation; Mongo reservation expires and work recovers
+ok 3 - A20 dispatcher dies after reservation; Mongo reservation expires and work recovers
+  ---
+  duration_ms: 30862.070762
+  type: 'test'
+  ...
+# Subtest: A10 two workers race; expired old worker cannot publish or fail, even before recovery
+ok 4 - A10 two workers race; expired old worker cannot publish or fail, even before recovery
+  ---
+  duration_ms: 11.713734
+  type: 'test'
+  ...
+# A09 elapsed_ms=66001
+# Subtest: A09 actual SIGKILL after claim; production 60s lease recovers within 75s
+ok 5 - A09 actual SIGKILL after claim; production 60s lease recovers within 75s
+  ---
+  duration_ms: 66343.747418
+  type: 'test'
+  ...
+# Subtest: A11 SIGKILL after committed result before transport ack; stalled job redelivers without mutation
+ok 6 - A11 SIGKILL after committed result before transport ack; stalled job redelivers without mutation
+  ---
+  duration_ms: 15398.75626
+  type: 'test'
+  ...
+# Subtest: A12 three transient attempts per run; concurrent manual retry creates exactly run 2; second exhaustion final
+ok 7 - A12 three transient attempts per run; concurrent manual retry creates exactly run 2; second exhaustion final
+  ---
+  duration_ms: 12230.972012
+  type: 'test'
+  ...
+# Subtest: A13 FLUSHDB loses waiting and active transport data; Mongo intent and attempts survive
+ok 8 - A13 FLUSHDB loses waiting and active transport data; Mongo intent and attempts survive
+  ---
+  duration_ms: 35715.006546
+  type: 'test'
+  ...
+# Subtest: A14 real Mongo death during publication leaves no partial result; restart and lease recovery succeeds
+ok 9 - A14 real Mongo death during publication leaves no partial result; restart and lease recovery succeeds
+  ---
+  duration_ms: 3536.681796
+  type: 'test'
+  ...
+# Subtest: Result document bound fails safely with no partial publication and no retry
+ok 10 - Result document bound fails safely with no partial publication and no retry
+  ---
+  duration_ms: 8.730739
+  type: 'test'
+  ...
+# Subtest: A15/A16 real Keycloak: owner-scoped exports/errors/retry; viewer denied retry; lost retry response safe
+ok 11 - A15/A16 real Keycloak: owner-scoped exports/errors/retry; viewer denied retry; lost retry response safe
+  ---
+  duration_ms: 1640.482448
+  type: 'test'
+  ...
+# Subtest: A14 uncertain write acknowledgement: real Mongo write-concern failure after commit remains atomic
+ok 12 - A14 uncertain write acknowledgement: real Mongo write-concern failure after commit remains atomic
+  ---
+  duration_ms: 10.460553
+  type: 'test'
+  ...
+# Subtest: A20 early and old-run notifications are no-ops; transport completion and failure auto-remove
+ok 13 - A20 early and old-run notifications are no-ops; transport completion and failure auto-remove
+  ---
+  duration_ms: 3964.07184
+  type: 'test'
+  ...
+# A20 observation elapsed_ms=55044 scans=12 reservations=2 jobs=1 attempts=0
+# A20 observation elapsed_ms=115085 scans=24 reservations=4 jobs=1 attempts=0
+# A20 observation elapsed_ms=175124 scans=36 reservations=6 jobs=1 attempts=0
+# Subtest: A20 ten minutes without consumers: stable ID bounds queue to one job; attempts zero; later completion
+not ok 14 - A20 ten minutes without consumers: stable ID bounds queue to one job; attempts zero; later completion
+  ---
+  duration_ms: 180003.17269
+  type: 'test'
+  location: '/tmp/odi-workspace/operations-import-desk/dist/apps/worker/test/integration.test.js:350:1'
+  failureType: 'testTimeoutFailure'
+  error: 'test timed out after 180000ms'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 13
+# fail 0
+# cancelled 1
+# skipped 0
+# todo 0
+# duration_ms 412442.044145
+Real-service diagnostic logs: /tmp/odi-m2-integration.muz8rL

@@ -1,0 +1,29 @@
+# Spoken walkthrough — approximately 4–5 minutes
+
+Target: 4:35 at a comfortable pace, including pauses/clicks. Read the paragraphs aloud; do not read headings. The exported capture is silent with captions so you can add your own voice. It does not impersonate your voice.
+
+## 0:00–0:30 — The operational problem
+
+Hi, I’m Phillip-Bryan, a junior full-stack developer pursuing my first professional software engineering role. Operations Import Desk is an independent learning demonstration inspired by WebCreek’s public job posting. It does not represent their systems or clients. The problem is simple: an operations coordinator receives shipment CSVs and needs clear accepted and rejected results, even when processing is interrupted. All the data you’ll see is synthetic.
+
+## 0:30–1:05 — The smallest useful architecture
+
+The interface is React, with a NestJS API and Keycloak sign-in using OIDC. MongoDB owns the accepted file, business status, attempts and results. Redis and BullMQ carry notifications that tell a worker which import to check. That distinction matters: losing a queue notification must not erase accepted work. I deliberately limited the files to one thousand rows and two hundred fifty-six kibibytes. That keeps the result small enough to publish atomically in one Mongo document. This is a bounded exercise, not a claim about enterprise capacity.
+
+## 1:05–1:55 — Submit and recover a normal result
+
+Here is Submit. The schema and limits are visible before I choose a file. I select the valid sample and submit it. The API confirms that the file was saved; that does not promise processing has started. On Details, I can see the actual state, run and attempt. Small files can finish before the intermediate state is visible, so there is no artificial progress animation. Once complete, I get accepted and rejected counts and a protected CSV download. I can leave for History, return, or refresh. The result comes back from the backend rather than depending on the original browser session.
+
+## 1:55–2:35 — Actionable rejected rows
+
+Now I submit the sample with invalid rows. It contains an impossible date and a duplicated shipment identifier. Validation finishes with errors and explains which records need correction. Valid rows are still available separately. Business-data errors are results, not infrastructure failures, so they do not trigger automatic retries. The operator corrects the source file and submits changed bytes. Downloads go through the authenticated API. Uploaded values are displayed as text, and spreadsheet formula prefixes are neutralized when exporting CSVs.
+
+## 2:35–3:55 — Real worker pause and recovery
+
+For one controlled reliability example, I’m pausing the local worker process. This is a real process pause in an isolated demo, not a simulated status or a database edit. With the API and Mongo still available, I submit another valid file. The file is saved and remains waiting for processing, with zero attempts. I leave the page and return to the same import. Its durable identity and state remain available. The interface does not diagnose the worker outage; I know the cause because I paused it. Now I resume that same worker. The import completes without another upload. This demonstrates recovery after a consumer pause. Separate integration tests cover the harder worker-death and expired-lease cases, including rejecting publication from a stale worker. I’m not claiming this short recording proves all of those failure modes.
+
+## 3:55–4:35 — Learning, limits and senior review
+
+NestJS, Redis, OIDC and queues were learning areas for me in this project, not prior professional experience. Codex assisted the design, implementation, tests and writing, and I need to understand and explain that work. The handoff includes architecture decisions, evidence and a recovery runbook. Docker Compose startup remains unverified, and no hosted CI result or public application deployment is claimed. I’d ask a senior engineer to challenge the lease and fencing model, the OIDC boundaries, and where I may have overengineered. The goal is a small feature another engineer can review and maintain, while giving me concrete opportunities to learn.
+
+If the normal import completes too quickly to show PENDING, continue honestly. Do not slow the application or fake a state. The controlled worker pause is introduced separately and explicitly.

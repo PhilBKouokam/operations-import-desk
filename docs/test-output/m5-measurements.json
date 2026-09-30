@@ -1,0 +1,253 @@
+{
+  "environment": {
+    "observedAt": "2026-09-30T01:50:54.654Z",
+    "node": "v24.19.0",
+    "platform": "linux",
+    "arch": "x64",
+    "kernel": "6.18.44",
+    "cpuModel": "AMD EPYC 9V74 80-Core Processor",
+    "logicalCpus": 9,
+    "hostReportedMemoryBytes": 10451464192,
+    "cgroupCpu": "800000 100000",
+    "cgroupMemory": "8589934592",
+    "mongo": "db version v8.0.15",
+    "redis": "Redis server v=7.4.6 sha=00000000:1 malloc=libc bits=64 build=a5d1fdcda91a14d0",
+    "bullmq": "6.3.10"
+  },
+  "method": "Real MongoDB/Redis/BullMQ and separate consumer processes; all-valid synthetic files. Uses production parser, store, dispatchScan, claim and publication. One immediate dispatch scan (excludes five-second scheduler wait), no HTTP/OIDC/UI timing. Consumers started before timed batch. RSS sampled every 10ms per process including idle baseline; not precise peak allocation and excludes Mongo/Redis. Single run per scenario, sequential scenario order, shared host/no statistical capacity claim. Batch creates eight durable imports before dispatch. Assertion: every result COMPLETED, correct count, attempt 1.",
+  "observations": [
+    {
+      "label": "single100",
+      "rowsPerImport": 100,
+      "imports": 1,
+      "workerProcesses": 1,
+      "batchCreateThroughObservedCompletionMs": 58.27,
+      "dispatchThroughObservedCompletionMs": 38.78,
+      "workerPeakSampledRssBytes": [
+        91070464
+      ],
+      "results": [
+        {
+          "importId": "8e19157b-c518-44bb-a93f-7041623d982a",
+          "inputBytes": 4769,
+          "claimToPublicationMs": 15,
+          "acceptanceToPublicationMs": 37,
+          "resultBsonBytes": 17773,
+          "documentBsonBytes": 23330,
+          "acceptedCsvBytes": 5882,
+          "errorCsvBytes": 133
+        }
+      ]
+    },
+    {
+      "label": "single1000",
+      "rowsPerImport": 1000,
+      "imports": 1,
+      "workerProcesses": 1,
+      "batchCreateThroughObservedCompletionMs": 111.91,
+      "dispatchThroughObservedCompletionMs": 73.8,
+      "workerPeakSampledRssBytes": [
+        112992256
+      ],
+      "results": [
+        {
+          "importId": "07d8e2c6-da6f-455f-9c7b-067345c5f2ad",
+          "inputBytes": 48969,
+          "claimToPublicationMs": 63,
+          "acceptanceToPublicationMs": 71,
+          "resultBsonBytes": 179873,
+          "documentBsonBytes": 229631,
+          "acceptedCsvBytes": 59982,
+          "errorCsvBytes": 133
+        }
+      ]
+    },
+    {
+      "label": "batchone",
+      "rowsPerImport": 1000,
+      "imports": 8,
+      "workerProcesses": 1,
+      "batchCreateThroughObservedCompletionMs": 562.9,
+      "dispatchThroughObservedCompletionMs": 342.62,
+      "workerPeakSampledRssBytes": [
+        123625472
+      ],
+      "results": [
+        {
+          "importId": "47bcabf0-4735-4e05-8635-43ed33fedebd",
+          "inputBytes": 46969,
+          "claimToPublicationMs": 33,
+          "acceptanceToPublicationMs": 332,
+          "resultBsonBytes": 177873,
+          "documentBsonBytes": 225629,
+          "acceptedCsvBytes": 57982,
+          "errorCsvBytes": 133
+        },
+        {
+          "importId": "4df4471e-f407-4b21-b1bb-f9f6559c84b2",
+          "inputBytes": 46969,
+          "claimToPublicationMs": 26,
+          "acceptanceToPublicationMs": 322,
+          "resultBsonBytes": 177873,
+          "documentBsonBytes": 225629,
+          "acceptedCsvBytes": 57982,
+          "errorCsvBytes": 133
+        },
+        {
+          "importId": "63126917-1c6e-443a-bb6c-8b415c33c775",
+          "inputBytes": 46969,
+          "claimToPublicationMs": 25,
+          "acceptanceToPublicationMs": 323,
+          "resultBsonBytes": 177873,
+          "documentBsonBytes": 225629,
+          "acceptedCsvBytes": 57982,
+          "errorCsvBytes": 133
+        },
+        {
+          "importId": "7e3f9e92-5aaf-432a-880d-4058650233e2",
+          "inputBytes": 46969,
+          "claimToPublicationMs": 61,
+          "acceptanceToPublicationMs": 264,
+          "resultBsonBytes": 177873,
+          "documentBsonBytes": 225629,
+          "acceptedCsvBytes": 57982,
+          "errorCsvBytes": 133
+        },
+        {
+          "importId": "80660aae-c72a-4da6-ae30-88f35b2329d3",
+          "inputBytes": 46969,
+          "claimToPublicationMs": 38,
+          "acceptanceToPublicationMs": 307,
+          "resultBsonBytes": 177873,
+          "documentBsonBytes": 225629,
+          "acceptedCsvBytes": 57982,
+          "errorCsvBytes": 133
+        },
+        {
+          "importId": "b46495d7-ce98-4c17-b500-9c4edb517aeb",
+          "inputBytes": 46969,
+          "claimToPublicationMs": 34,
+          "acceptanceToPublicationMs": 321,
+          "resultBsonBytes": 177873,
+          "documentBsonBytes": 225629,
+          "acceptedCsvBytes": 57982,
+          "errorCsvBytes": 133
+        },
+        {
+          "importId": "c66ecf90-0b93-449e-999d-672007da36c8",
+          "inputBytes": 46969,
+          "claimToPublicationMs": 26,
+          "acceptanceToPublicationMs": 328,
+          "resultBsonBytes": 177873,
+          "documentBsonBytes": 225629,
+          "acceptedCsvBytes": 57982,
+          "errorCsvBytes": 133
+        },
+        {
+          "importId": "da409315-4699-433f-b605-6da9ba43e7f2",
+          "inputBytes": 46969,
+          "claimToPublicationMs": 39,
+          "acceptanceToPublicationMs": 289,
+          "resultBsonBytes": 177873,
+          "documentBsonBytes": 225629,
+          "acceptedCsvBytes": 57982,
+          "errorCsvBytes": 133
+        }
+      ]
+    },
+    {
+      "label": "batchtwo",
+      "rowsPerImport": 1000,
+      "imports": 8,
+      "workerProcesses": 2,
+      "batchCreateThroughObservedCompletionMs": 398.61,
+      "dispatchThroughObservedCompletionMs": 230.25,
+      "workerPeakSampledRssBytes": [
+        118362112,
+        116760576
+      ],
+      "results": [
+        {
+          "importId": "06a39ba2-895c-486d-8734-70f173630983",
+          "inputBytes": 46969,
+          "claimToPublicationMs": 68,
+          "acceptanceToPublicationMs": 205,
+          "resultBsonBytes": 177873,
+          "documentBsonBytes": 225629,
+          "acceptedCsvBytes": 57982,
+          "errorCsvBytes": 133
+        },
+        {
+          "importId": "595291db-9b5a-4978-82c4-44a196249fa1",
+          "inputBytes": 46969,
+          "claimToPublicationMs": 33,
+          "acceptanceToPublicationMs": 219,
+          "resultBsonBytes": 177873,
+          "documentBsonBytes": 225629,
+          "acceptedCsvBytes": 57982,
+          "errorCsvBytes": 133
+        },
+        {
+          "importId": "6be54833-2fc1-49a3-bee5-d88af13e3dfa",
+          "inputBytes": 46969,
+          "claimToPublicationMs": 35,
+          "acceptanceToPublicationMs": 221,
+          "resultBsonBytes": 177873,
+          "documentBsonBytes": 225629,
+          "acceptedCsvBytes": 57982,
+          "errorCsvBytes": 133
+        },
+        {
+          "importId": "898d395f-5cfd-426a-bd0d-8b1b0d5a396c",
+          "inputBytes": 46969,
+          "claimToPublicationMs": 37,
+          "acceptanceToPublicationMs": 212,
+          "resultBsonBytes": 177873,
+          "documentBsonBytes": 225629,
+          "acceptedCsvBytes": 57982,
+          "errorCsvBytes": 133
+        },
+        {
+          "importId": "d2e79e6e-1101-4a65-b095-51db45c423cd",
+          "inputBytes": 46969,
+          "claimToPublicationMs": 38,
+          "acceptanceToPublicationMs": 208,
+          "resultBsonBytes": 177873,
+          "documentBsonBytes": 225629,
+          "acceptedCsvBytes": 57982,
+          "errorCsvBytes": 133
+        },
+        {
+          "importId": "d75ee61b-3737-4411-a6ce-fbb202f2cb14",
+          "inputBytes": 46969,
+          "claimToPublicationMs": 76,
+          "acceptanceToPublicationMs": 234,
+          "resultBsonBytes": 177873,
+          "documentBsonBytes": 225629,
+          "acceptedCsvBytes": 57982,
+          "errorCsvBytes": 133
+        },
+        {
+          "importId": "e4532a51-20ed-43ec-950a-9edfcc0f62f1",
+          "inputBytes": 46969,
+          "claimToPublicationMs": 33,
+          "acceptanceToPublicationMs": 209,
+          "resultBsonBytes": 177873,
+          "documentBsonBytes": 225629,
+          "acceptedCsvBytes": 57982,
+          "errorCsvBytes": 133
+        },
+        {
+          "importId": "f4c23ccb-d00e-48a3-b028-0091ae2af9f3",
+          "inputBytes": 46969,
+          "claimToPublicationMs": 34,
+          "acceptanceToPublicationMs": 217,
+          "resultBsonBytes": 177873,
+          "documentBsonBytes": 225629,
+          "acceptedCsvBytes": 57982,
+          "errorCsvBytes": 133
+        }
+      ]
+    }
+  ]
+}

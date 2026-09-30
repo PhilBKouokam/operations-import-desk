@@ -1,0 +1,12 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 measure
+> npm run build && node scripts/measure.mjs
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 build
+> tsc -p tsconfig.json
+
+A19 observations saved: docs/test-output/m5-measurements.json
+Disposable service logs: /tmp/odi-measure-HlgZCP

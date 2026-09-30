@@ -1,0 +1,38 @@
+name: Verify
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: npm install --global npm@11.9.0
+      - run: npm ci --ignore-scripts
+      - run: npm run check && npm run build:web && npm run docs:check
+      - run: bash scripts/install-native-services.sh "$RUNNER_TEMP/odi-runtime"
+      - run: npx playwright install --with-deps chromium
+      - name: Real MongoDB and Keycloak API/security
+        run: |
+          source "$RUNNER_TEMP/odi-runtime/env.sh"
+          bash scripts/test-real-services.sh
+      - name: Real MongoDB Redis BullMQ recovery, including ten-minute dispatch bound
+        run: |
+          source "$RUNNER_TEMP/odi-runtime/env.sh"
+          REAL_SERVICE_SUITE=test:m3 bash scripts/test-real-services.sh
+      - name: Real browser and six native processes
+        run: |
+          source "$RUNNER_TEMP/odi-runtime/env.sh"
+          bash scripts/test-browser-services.sh

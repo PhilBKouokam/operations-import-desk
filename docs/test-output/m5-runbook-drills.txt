@@ -1,0 +1,35 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 test:m3
+> npm run build && node --test --test-reporter=tap --test-timeout=780000 --test-concurrency=1 --test-name-pattern="${M3_TEST_PATTERN:-.}" dist/apps/worker/test/integration.test.js
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 build
+> tsc -p tsconfig.json
+
+TAP version 13
+# A08 recovered {"importIds":["7c9baa3b-a959-4eea-87eb-58261446fafa","6b21876e-f70e-4205-bdfc-4bfa6136a4bb"],"states":["COMPLETED","COMPLETED"],"attempts":[1,1]}
+# Subtest: A08 Redis unavailable before acceptance and after acceptance; bounded enqueue failure then real redispatch
+ok 1 - A08 Redis unavailable before acceptance and after acceptance; bounded enqueue failure then real redispatch
+  ---
+  duration_ms: 62041.76154
+  type: 'test'
+  ...
+# A09 recovered {"importId":"57f858a2-4bc5-446b-81d4-3a8e9c3b3dff","state":"COMPLETED","attempt":2,"elapsedMs":66116}
+# Subtest: A09 actual SIGKILL after claim; production 60s lease recovers within 75s
+ok 2 - A09 actual SIGKILL after claim; production 60s lease recovers within 75s
+  ---
+  duration_ms: 66439.240669
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 128874.974835
+Real-service diagnostic logs: /tmp/odi-m2-integration.GtgLaZ

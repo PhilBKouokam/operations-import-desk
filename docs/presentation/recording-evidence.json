@@ -1,0 +1,20 @@
+{
+  "kind": "real browser capture; silent video; captions added in export",
+  "normalImportUrl": "/imports/57269d89-9bd2-44ca-a129-ad14c54a86b4",
+  "observations": [
+    {
+      "event": "worker_paused",
+      "importId": "aa9063ce-b6f2-439c-9cfd-8557ced1a413",
+      "state": "PENDING",
+      "attempt": 0
+    },
+    {
+      "event": "worker_resumed",
+      "importId": "aa9063ce-b6f2-439c-9cfd-8557ced1a413",
+      "state": "COMPLETED",
+      "attempt": 1
+    }
+  ],
+  "durationTargetSeconds": 275,
+  "limitations": "Consumer pause/resume only. Does not demonstrate killed-worker lease recovery. No database state mutation. No voice recording."
+}

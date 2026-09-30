@@ -1,0 +1,51 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 test:m3
+> npm run build && node --test --test-reporter=tap --test-timeout=780000 --test-concurrency=1 --test-name-pattern="${M3_TEST_PATTERN:-.}" dist/apps/worker/test/integration.test.js
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 build
+> tsc -p tsconfig.json
+
+TAP version 13
+# Subtest: A01–A03 real BullMQ validates happy, mixed, all-invalid; atomic rows/counts and header-only export
+ok 1 - A01–A03 real BullMQ validates happy, mixed, all-invalid; atomic rows/counts and header-only export
+  ---
+  duration_ms: 988.693156
+  type: 'test'
+  ...
+# Subtest: A11 SIGKILL after committed result before transport ack; stalled job redelivers without mutation
+ok 2 - A11 SIGKILL after committed result before transport ack; stalled job redelivers without mutation
+  ---
+  duration_ms: 10435.419325
+  type: 'test'
+  ...
+# Subtest: A15/A16 real Keycloak: owner-scoped exports/errors/retry; viewer denied retry; lost retry response safe
+ok 3 - A15/A16 real Keycloak: owner-scoped exports/errors/retry; viewer denied retry; lost retry response safe
+  ---
+  duration_ms: 1379.067833
+  type: 'test'
+  ...
+# Subtest: A14 uncertain write acknowledgement: real Mongo write-concern failure after commit remains atomic
+ok 4 - A14 uncertain write acknowledgement: real Mongo write-concern failure after commit remains atomic
+  ---
+  duration_ms: 9.420568
+  type: 'test'
+  ...
+# Subtest: A20 early and old-run notifications are no-ops; transport completion and failure auto-remove
+ok 5 - A20 early and old-run notifications are no-ops; transport completion and failure auto-remove
+  ---
+  duration_ms: 3970.438177
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 17175.567367
+Real-service diagnostic logs: /tmp/odi-m2-integration.t55GJ1

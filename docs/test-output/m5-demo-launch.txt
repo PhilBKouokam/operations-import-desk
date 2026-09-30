@@ -1,0 +1,30 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 build
+> tsc -p tsconfig.json
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 build:web
+> npm run build -w @operations-import-desk/web
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> @operations-import-desk/web@0.4.0 build
+> tsc --noEmit && vite build
+
+vite v8.3.1 building client environment for production...
+transforming...
+✓ 25 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.45 kB │ gzip:  0.29 kB
+dist/assets/index-qZINAWea.css    5.65 kB │ gzip:  2.02 kB
+dist/assets/index-D5Nid-NJ.js   266.17 kB │ gzip: 82.60 kB
+
+✓ built in 124ms
+Local synthetic demo: http://127.0.0.1:5173
+Accounts: operator-a, operator-b, viewer. Password: Local-demo-only-123!
+Accounts are seeded by Keycloak. Start with empty history; submit samples/valid.csv as operator-a.
+Data is disposable. Stop with Ctrl-C. Never expose these services publicly.
+Browser-service diagnostic logs: /tmp/odi-m4.n63qAC

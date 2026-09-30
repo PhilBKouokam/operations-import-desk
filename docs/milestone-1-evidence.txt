@@ -1,0 +1,68 @@
+OPERATIONS IMPORT DESK — MILESTONE 1 EVIDENCE
+September 29, 2026
+
+Status at M1 delivery: input foundation implemented and tested. User subsequently accepted M1 with the carried environment-dependent verification item below. This document preserves historical M1 evidence; see the M2 report for subsequent work.
+
+M1-Docker: Docker Compose configuration exists, but reproducible container startup has not been verified because Docker is unavailable in the current execution environment. This is an unresolved environment-dependent verification item, not an implementation failure or an M2 blocker. Verify in the first Docker-capable environment, no later than the M5 clean-checkout/handoff gate. Never mark passed from native-binary service tests.
+
+Implemented:
+- Approved design v1.1: Mongo-owned 30-second nextDispatchAt reservation before enqueue; corrected index; stable per-import/run transport ID prevents waiting duplicates accumulating; removal of terminal transport jobs permits redispatch. A20 is added as a PLANNED M3 integration requirement, not a passing test.
+- Private npm workspace, exact package versions plus lockfile, Node version declaration, strict TypeScript compile/type checks, Node test runner, documented future app boundaries.
+- Input package: fatal UTF-8 decoding, bounded file/record/cell checks, strict CSV structure via csv-parse, deterministic row rules, whole-file duplicate validation and integer-gram weight handling.
+- Synthetic examples, development-only dependency Compose file, README and honest AI-assistance disclosure. No HTTP endpoints, OIDC realm, auth, MongoDB writes, dispatcher, worker or UI.
+
+Environment:
+node --version -> v24.19.0
+npm --version -> 11.9.0
+Docker and Docker Compose commands are unavailable (docker: command not found).
+
+Exact installation / verification commands actually run from project root:
+1. npm install --ignore-scripts --no-audit --no-fund --fetch-retries=0 --fetch-timeout=30000
+   PASS, 5 packages added; generated package-lock.json.
+2. npm run check
+   PASS: npm run typecheck (tsc -p tsconfig.json --noEmit), then npm test (npm run build -> tsc -p tsconfig.json; node --test dist/packages/input/test/*.test.js).
+   30 tests, 30 passed, 0 failed/skipped/todo.
+3. npm run infra:config
+   FAILED: invokes docker compose config --quiet; shell reports docker: not found. No Compose semantic validation occurred.
+4. npm run infra:up
+   FAILED: invokes docker compose up -d --wait; shell reports docker: not found. No containers started.
+5. npm ls --depth=0
+   PASS: workspace @operations-import-desk/input 0.1.0; csv-parse 7.0.3; @types/node 24.10.1; typescript 5.9.3.
+6. npm ci --ignore-scripts --no-audit --no-fund --fetch-retries=0 --fetch-timeout=30000 && npm run check
+   PASS: fresh lockfile install, strict typecheck/build and all 30 tests again.
+
+npm emitted an environment-level 'Unknown env config http-proxy' warning; it did not fail installation or tests. No dependency vulnerability audit was performed, and no security-audit claim is made.
+
+A04 evidence (17 Node tests):
+- 1,000 records accepted structurally; 1,001 rejected.
+- Exactly 262,144 raw bytes accepted structurally; one additional byte rejected.
+- 128 decoded code points accepted structurally, 129 rejected; ASCII and astral Unicode covered.
+- 4,096 raw record bytes pass the byte gate but fail the stricter cell limit; 4,097 rejected by the byte gate. UTF-8 byte counting separately covered. Under six 128-code-point cells, a fully valid record cannot reach 4 KiB, so the exact-byte fixture deliberately violates the cell limit.
+- Invalid UTF-8 (truncation, illegal continuation, UTF-16 BOM), malformed quoting, wrong header order/names/case/spacing, wrong column counts, and empty/header-only files rejected.
+- 'Before persistence' is only established at the pure function boundary (throws); no API/database integration exists to prove the full ingress path yet.
+
+A05 evidence (13 Node tests):
+- BOM/no-BOM, LF/CRLF and one optional final line ending yield identical results.
+- Interior blank lines, a second final newline, bare CR and multiline quoted fields rejected.
+- Quoted commas/doubled quotes decoded correctly; decoded quotes count once for cell length.
+- Only surrounding ASCII spaces trimmed for business rules; no case normalization; rejected original values preserved.
+- Leap years, real calendar dates and 2000–2099 bounds enforced independent of current time.
+- Integer grams preserve 0.001, 12.500, 100000 and leading-zero decimal examples; canonical formatting verified.
+- Zero/negative/too-large weights, signs, exponent notation, excessive precision, nonnumeric values and excessively large integers rejected without rounding.
+- ID/location/carrier formats and length boundaries checked; destination must differ; one primary field error.
+- All duplicate occurrences rejected, including otherwise invalid rows and space-normalized IDs.
+- Twenty repeated validations match exactly; frozen parsed input unchanged; counts partition input records.
+- Synthetic good and mixed-error samples yield 3/3/0 and 4/1/3 total/accepted/rejected counts.
+
+Open correctness/security limits:
+- Docker is absent. Compose configuration, image pulls, health checks and dependency startup remain unverified. Reproducible dependency startup is an unmet M1 gate, not a passing result.
+- No working authentication, bounded multipart endpoint, persistence or queue exists yet. The input function accepts an already-buffered Uint8Array; later ingress must bound bytes before buffering.
+- Container version tags are explicit but not digest-pinned or vulnerability-qualified. Compose is loopback-only local development, not deployment configuration.
+- A20 dispatch boundedness has no runtime evidence in M1; implementation/integration tests belong to M3.
+
+What was learned:
+- A dispatch interval bounds enqueue rate but cannot alone bound queue cardinality; stable transport IDs complement Mongo-owned scheduling without turning queue state into durable business truth.
+- csv-parse configuration does not substitute for application byte and Unicode-code-point limits. Fatal UTF-8 decoding and explicit line-ending policy are separate concerns.
+- Conventional CSV can contain multiline fields, but this fixed contract explicitly forbids them; per-line strict parsing enforces that smaller language.
+- Integer grams and full calendar round-trip checks avoid floating-point rounding and permissive date normalization.
+- Strict TypeScript and executable parser tests now have hands-on evidence. NestJS, Redis/BullMQ, Mongo persistence and OIDC runtime learning has NOT yet occurred in this milestone.

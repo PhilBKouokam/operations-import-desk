@@ -1,0 +1,109 @@
+OPERATIONS IMPORT DESK — MILESTONE 3 EVIDENCE
+September 30, 2026 UTC
+
+1. IMPLEMENTED BEHAVIOR
+
+Frozen v1.1 processing/recovery only. No React UI or excluded product features were added.
+
+MongoDB owns durable input, state, attempts, schedules, leases and results. A dispatcher atomically reserves a due PENDING import using database time and advances nextDispatchAt by 30 seconds before enqueueing. Five-second scans reserve at most 100 imports. Dispatch does not consume processing attempts. Stable per-import/run BullMQ IDs, immediate completed/failed job removal, disabled producer offline buffering and a two-second enqueue deadline keep Redis a notification transport. The existing dispatch/expired-lease indexes remain unchanged and are verified at startup.
+
+A conditional Mongo claim issues a random 60-second lease and increments one attempt. Validation yields every 100 rows and enforces a 30-second deadline. Publication/failure writes match import ID, run, PROCESSING state, current lease token and an unexpired database-time lease. Expired-lease recovery shares the three-attempt/run budget; transient retries wait two then four seconds. Only one authorized manual retry may create run 2. Repeated expectedRun:1 requests return the current second run without starting another run.
+
+One Mongo update publishes the terminal state, complete result/counts, timestamps and event together. Business-invalid rows produce COMPLETED_WITH_ERRORS, including all-invalid files; they do not retry. BSON sizing includes the input/result/document and an 8-KiB conservative metadata reserve below the four-MiB ceiling. Oversized results fail nonretryably with no partial result. Failure messages and structured logs use explicit safe fields; logs exclude identity, tokens, lease tokens and raw rows.
+
+Owner-scoped errors pagination, accepted/error CSV downloads and operator-only retry extend the existing NestJS API. Downloads quote/escape all cells and prefix spreadsheet-active values with an apostrophe without modifying stored input. Empty categories produce header-only CSV. HTTP responses remain explicit allowlists. List queries omit full result rows as well as input bytes and lease tokens. Fault injection exists only in the local test harness, not public routes.
+
+2. EXACT VERIFICATION COMMANDS AND RESULTS
+
+Working directory: /tmp/odi-workspace/operations-import-desk
+Environment: Node v24.19.0, npm 11.9.0, MongoDB server 8.0.15, Redis 7.4.6 (native libc build), Keycloak 26.4.0, Java 17.0.20. Application packages: BullMQ 6.3.10, ioredis 5.10.0, MongoDB Node driver 7.7.0; existing NestJS/OIDC packages retained. Tests run synthetic data in disposable native-service databases on loopback. No mocks substitute for MongoDB, Redis, BullMQ or Keycloak.
+
+Redis provisioning actually run:
+  curl -fsSL https://download.redis.io/releases/redis-7.4.6.tar.gz -o /tmp/redis-7.4.6.tar.gz
+  tar -xzf /tmp/redis-7.4.6.tar.gz -C /tmp
+  make -C /tmp/redis-7.4.6 -j2 MALLOC=libc BUILD_TLS=no
+Result: exit 0. Build emitted missing-pkg-config warnings, but produced the working real server. `/tmp/redis-7.4.6/src/redis-server --version` reported v7.4.6, libc, 64-bit.
+
+  npm install
+Result: 20 packages added; pinned worker dependencies and lockfile recorded.
+
+  npm run typecheck
+  npm run check
+Result: strict TypeScript build/type checks passed; 41 unit tests passed (30 retained input rules, 7 retained API units, 4 M3 units), zero failures/skips. The first development typecheck found one unused test-helper argument; it was removed.
+
+  npm audit --omit=dev
+Result: 0 known vulnerabilities reported. This is a dependency advisory check, not a complete security audit or a container assessment.
+
+Real-service commands actually run (each from the working directory):
+
+  MONGOD_BIN=/tmp/odi-workspace/m2-runtime/mongodb-linux-x86_64-ubuntu2204-8.0.15/bin/mongod KEYCLOAK_HOME=/tmp/odi-workspace/m2-runtime/keycloak-26.4.0 REDIS_SERVER_BIN=/tmp/redis-7.4.6/src/redis-server REAL_SERVICE_SUITE=test:m3 bash scripts/test-real-services.sh
+Initial full M3 run: 12 tests: 10 passed, 2 failed, zero cancelled/skipped; duration 816,689.237357 ms; exit 1. Its ten-minute A20 observation is retained as evidence; the two failed development assertions were corrected and the affected scenarios rerun below. This initial full command is not labeled a passing suite.
+
+  MONGOD_BIN=/tmp/odi-workspace/m2-runtime/mongodb-linux-x86_64-ubuntu2204-8.0.15/bin/mongod KEYCLOAK_HOME=/tmp/odi-workspace/m2-runtime/keycloak-26.4.0 REDIS_SERVER_BIN=/tmp/redis-7.4.6/src/redis-server REAL_SERVICE_SUITE=test:m3:recovery bash scripts/test-real-services.sh
+Final recovery run: 13/13 real integration tests passed, zero failures/cancellations/skips; duration 229,920.007202 ms; exit 0. The final script explicitly excludes only the ten-minute observation using --test-skip-pattern="A20 ten minutes". An earlier invocation passed 13 cases but inadvertently also selected the long test via an incorrect negative-lookahead name filter; that extra test was cancelled. Its command exited 1 and is not counted as a clean suite pass.
+
+  MONGOD_BIN=/tmp/odi-workspace/m2-runtime/mongodb-linux-x86_64-ubuntu2204-8.0.15/bin/mongod KEYCLOAK_HOME=/tmp/odi-workspace/m2-runtime/keycloak-26.4.0 REDIS_SERVER_BIN=/tmp/redis-7.4.6/src/redis-server REAL_SERVICE_SUITE=test:m3 M3_TEST_PATTERN='A01|A11|A14 uncertain|A15/A16|A20 early' bash scripts/test-real-services.sh
+Result: 5/5 selected real integration tests passed, zero failures/skips. This included the strengthened A11 assertion that the redelivered job was actually consumed/removed, and the additional protected-route checks. Duration 17,175.567367 ms, excluding service startup/build.
+
+  MONGOD_BIN=/tmp/odi-workspace/m2-runtime/mongodb-linux-x86_64-ubuntu2204-8.0.15/bin/mongod KEYCLOAK_HOME=/tmp/odi-workspace/m2-runtime/keycloak-26.4.0 bash scripts/test-real-services.sh
+Result: all 23 retained M2 real MongoDB/Keycloak integration tests passed, zero failures/skips. Duration 33,339.238039 ms, excluding service startup/build. The former 'future route absent' checks now correctly expect 409 for unavailable M3 results/retry, preserving their safe-error assertions.
+
+Additional targeted acknowledgement-loss diagnostic actually run with MONGOD_BIN, REDIS_SERVER_BIN and M2_OIDC_ISSUER set to the same paths/loopback issuer above:
+  npm run build
+  node --test --test-reporter=tap --test-timeout=90000 --test-name-pattern='A11' dist/apps/worker/test/integration.test.js
+Result: 1/1 real MongoDB/Redis/BullMQ test passed, zero failures/skips, 16,421.134893 ms. This selected test does not log in or claim Keycloak evidence.
+
+  git diff --check
+Result: no whitespace errors.
+
+3. ACCEPTANCE EVIDENCE AND ITS LEVEL
+
+Unit evidence: spreadsheet prefix neutralization/CSV escaping; stable per-run ID formatting; explicit failure classification; chunked validation preserving cross-chunk duplicates. The 37 prior unit tests remain green. Unit tests are not used to claim service reliability.
+
+A01/A02/A03 — real MongoDB + Redis/BullMQ: happy, mixed and all-invalid inputs reach the correct terminal states with matching whole results/counts and attempt=1. All-invalid accepted export is header-only; raw malicious values remain unchanged while error export neutralizes them.
+
+A08 — real service termination/restart: Redis is SIGKILLed before durable acceptance and after acceptance. Imports remain PENDING with attempt=0; enqueue returns within the bounded failure window and processing completes after restart without another upload. A real Keycloak-authenticated HTTP upload also returns 202 during a Redis outage and later completes. Existing M2 API-restart/deduplication coverage passes.
+
+A09 — real worker child SIGKILL after Mongo claim, real 60-second lease, five-second scans: recovered and completed in 66,036 ms in the final run (earlier corrected run: 66,001 ms). One consumed attempt is recovered; attempt 2 publishes the correct result. The fixture meets the under-75-second isolated recovery target.
+
+A10 — real Mongo concurrency/fencing: two simultaneous claim operations yield exactly one winner. Test-controlled database lease expiry proves that the old holder cannot publish or fail even before recovery; after a new claim/token, the old holder remains fenced. These expiry mutations accelerate the stale-writer permutations; A09 separately waits a real full lease.
+
+A11 — real BullMQ worker SIGKILL after Mongo result commit but before processor return/transport acknowledgement: the stalled notification is redelivered, consumed and removed; the worker observes terminal state and leaves the document exactly unchanged. Duplicate direct processing is also a no-op.
+
+A12 — real Mongo transitions with explicit transient-failure injection at the processing-state boundary: three attempts exhaust run 1, with real two-/four-second retry waits and early claims rejected. Concurrent manual retry calls produce exactly one run 2. Three more attempts exhaust run 2; no third run is created. Real Keycloak HTTP tests verify operator authorization, viewer denial, foreign-owner 404, malformed envelopes and idempotent retry resubmission. This is not a claim that six physical dependency outages were induced.
+
+A13 — real Redis FLUSHDB removes waiting transport data; Mongo redispatch completes without re-upload. A separately claimed active import retains its consumed attempt after Redis loss and is recovered from an expired Mongo lease. Queue loss never resets the Mongo budget.
+
+A14 — real Mongo process SIGKILL before final publication: publication errors, the restarted database contains PROCESSING with result=null, and recovery later publishes the complete result. A separate test-only Mongo failCommand write-concern error simulates ambiguous acknowledgement after the update commits: state/results are already complete, a follow-up failure write is fenced out, and redelivery changes nothing. Real Mongo atomicity is exercised; this is not a replica-set failover/disk-corruption test.
+
+A16 relevant — unit CSV escaping plus actual owner-protected CSV HTTP downloads using real Keycloak tokens. Formula input stays unchanged in Mongo and receives a presentation-only apostrophe in export. Unauthenticated/foreign owners cannot read results; viewers read their own result but cannot retry. M2 HTTP malformed/oversized envelope tests remain green. Browser rendering belongs to M4 and is not claimed.
+
+A20 — real MongoDB/Redis/BullMQ, no consumers, two dispatchers, five-second scans: 600,426 ms observed, 120 scan rounds, 20 successful reservations, exactly one waiting job and zero consumed attempts throughout. Queue cardinality remained one, state PENDING and attempt zero; starting a consumer completed the same import without another upload. Stable IDs enforce the per-import/run cardinality structurally; the finite observation is not an infinite-time proof. Separate tests SIGKILL a dispatcher child after reservation but before enqueue and recover after the real 30-second throttle; verify early and stale-run notices are no-ops; prove successful/failed transport jobs auto-remove; and verify redispatch after transport data deletion. No outbox or authoritative queue-state checks were added.
+
+Result-size enforcement — real Mongo fixture with a deliberately oversized candidate result is rejected before publication, becomes nonretryable FAILED, retains result=null and cannot manually retry. This bypasses normal bounded parsing only inside the test to exercise the defensive ceiling.
+
+4. FAILURES ENCOUNTERED AND CORRECTIONS
+
+- First TypeScript check found an unused test-helper parameter; removed before running tests.
+- A leak assertion searched for the string "owner" anywhere, so it matched the approved timeline actor value. Corrected to check JSON field names ("owner":), retaining the actual identity-leak check.
+- A11's original 15-second observation timeout was too short for the observed BullMQ stalled-job recovery (~15–16 seconds). Increased the observation window to 45 seconds and strengthened it to require actual redelivery/removal plus an unchanged document. No lease, budget or business-state rule was weakened.
+- The initial recovery-only negative-lookahead name filter included the ten-minute case unexpectedly. Cancelled that unintended extra case, replaced selection with Node's explicit --test-skip-pattern, and reran the recovery suite.
+- Missing pkg-config produced Redis build warnings; the compiler/linker completed and the actual server passed integration tests.
+
+5. UNRESOLVED CORRECTNESS/SECURITY ISSUES AND LIMITS
+
+No known unresolved M3 correctness/security blocker from these tests. Evidence is local, synthetic and single-node. It does not establish production capacity, multi-node failover safety beyond Mongo's stated write guarantees, public-host security, M4 browser behavior or M5 deployment/handoff completion. The test-only Mongo failpoint is enabled only on a disposable harness instance. Redis/Mongo test data is disposable; no public fault controls were implemented.
+
+6. M1-DOCKER
+
+OPEN, environment-dependent: Docker Compose configuration exists, but reproducible container startup has not been verified because Docker is unavailable in this execution environment. Native MongoDB/Redis/Keycloak tests do not close this item. Verify in the first Docker-capable environment, no later than the M5 clean-checkout/handoff gate. It is not currently an M3 correctness/security blocker.
+
+7. LEARNING NOTES
+
+Redis/BullMQ job locks and acknowledgements solve transport problems; they cannot replace durable business intent. Stable IDs bound queued notifications, while Mongo nextDispatchAt bounds how often dispatch is attempted. Auto-removal matters because a completed transport no-op must not suppress future durable work.
+
+A lease is not just a timestamp: publication must atomically match run, token, state and database-time validity. Expiry must fence a worker even before the recovery scanner notices it. Retry budgets belong beside those durable transitions, not in queue retry counters.
+
+A failed response is not proof that a database write failed. Keeping the bounded whole result in one document makes both outcomes safe: either it remains recoverable without results, or it is already terminal with the full result. Fenced follow-up failure writes cannot undo the committed outcome.
+
+The tests also exposed the difference between a business lease deadline and BullMQ's stalled-job detection cadence, and the need to preserve cross-chunk duplicate detection while yielding the event loop. These are implementation learning notes, not claims of independent mastery or professional NestJS/Redis/OIDC experience. This project remains AI-assisted work by a junior applicant seeking a first professional software engineering role and senior-engineer mentorship.

@@ -1,0 +1,76 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 build
+> tsc -p tsconfig.json
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 build:web
+> npm run build -w @operations-import-desk/web
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> @operations-import-desk/web@0.4.0 build
+> tsc --noEmit && vite build
+
+vite v8.3.1 building client environment for production...
+transforming...
+✓ 25 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.45 kB │ gzip:  0.29 kB
+dist/assets/index-qZINAWea.css    5.65 kB │ gzip:  2.02 kB
+dist/assets/index-D5Nid-NJ.js   266.17 kB │ gzip: 82.60 kB
+
+✓ built in 119ms
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 test:m4
+> playwright test --config=apps/web/playwright.config.ts
+
+
+Running 7 tests using 1 worker
+
+(node:443) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 apps/web/test/workflow.spec.mjs:35:1 › A17 operator: keyboard Submit → Details → History, durable acceptance and completion, refresh, token storage (1.0m)
+(node:556) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 apps/web/test/workflow.spec.mjs:48:1 › A17 mixed/invalid rows, literal malicious text, protected safe CSV downloads and duplicate upload (8.2s)
+  ✓  3 apps/web/test/workflow.spec.mjs:55:1 › A17 structural validation, accessible error association, loading/unavailable/empty history (2.2s)
+  ✓  4 apps/web/test/workflow.spec.mjs:59:1 › A17 viewer reads own seed; cannot submit or retry; operator B direct navigation gets real 404 (2.0s)
+  ✓  5 apps/web/test/workflow.spec.mjs:64:1 › A17 server-authorized eligible retry only, second run, no retry for nonretryable failure (7.1s)
+  ✓  6 apps/web/test/workflow.spec.mjs:68:1 › A17 actual network failure retains confirmed status; polling stops terminal and after leaving (20.1s)
+  ✓  7 apps/web/test/workflow.spec.mjs:74:1 › A17 history cursor pages are stable, newest first, with semantic tables (1.7s)
+
+
+  1) apps/web/test/workflow.spec.mjs:35:1 › A17 operator: keyboard Submit → Details → History, durable acceptance and completion, refresh, token storage
+
+    Test timeout of 60000ms exceeded.
+
+    Error: page.waitForEvent: Test timeout of 60000ms exceeded.
+    =========================== logs ===========================
+    waiting for event "filechooser"
+    ============================================================
+
+      37 |   await login(page);await expect(page.getByRole('heading',{name:'No imports yet'})).toBeVisible();await axe(page);
+      38 |   const submitLink=page.getByRole('link',{name:'Submit',exact:true});await tabTo(page,submitLink);await expect(submitLink).toBeFocused();expect(await submitLink.evaluate(el=>getComputedStyle(el).outlineWidth)).toBe('3px');await page.keyboard.press('Enter');await expect(page.getByRole('heading',{name:'Submit an import'})).toBeFocused();await axe(page);
+    > 39 |   const input=page.getByLabel('Shipment CSV',{exact:true});await tabTo(page,input);const chooser=page.waitForEvent('filechooser');await page.keyboard.press('Enter');await(await chooser).setFiles({name:'keyboard.csv',mimeType:'text/csv',buffer:Buffer.from(valid)});
+         |                                                                                                       ^
+      40 |   pause();const button=page.getByRole('button',{name:'Submit import',exact:true});await tabTo(page,button);await page.keyboard.press('Enter');await expect(page.getByRole('heading',{name:'File saved'})).toBeVisible();await expect(page.getByText('Waiting for processing',{exact:true})).toBeVisible();
+      41 |   const view=page.getByRole('link',{name:'View import details'});await tabTo(page,view);await page.keyboard.press('Enter');await expect(page.getByText('Saved; waiting for processing.')).toBeVisible();const url=page.url();resume();await expect(page.getByText('All rows passed validation.',{exact:false})).toBeVisible({timeout:45000});await axe(page);
+      42 |   await page.screenshot({path:'docs/test-output/m4-details.png',fullPage:true});
+        at /tmp/odi-workspace/operations-import-desk/apps/web/test/workflow.spec.mjs:39:103
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/m4/workflow-A17-operator-keyb-c18b5-etion-refresh-token-storage/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/m4/workflow-A17-operator-keyb-c18b5-etion-refresh-token-storage/error-context.md
+
+    Error Context: test-results/m4/workflow-A17-operator-keyb-c18b5-etion-refresh-token-storage/error-context.md
+
+  1 failed
+    apps/web/test/workflow.spec.mjs:35:1 › A17 operator: keyboard Submit → Details → History, durable acceptance and completion, refresh, token storage
+  6 passed (1.7m)
+Browser-service diagnostic logs: /tmp/odi-m4.WaOuee

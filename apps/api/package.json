@@ -1,0 +1,1 @@
+{"name":"@operations-import-desk/api","version":"0.2.0","private":true,"type":"module","dependencies":{"@nestjs/common":"11.2.6","@nestjs/core":"11.2.6","@nestjs/platform-express":"11.2.6","busboy":"1.6.0","jose":"6.2.12","mongodb":"7.7.0","reflect-metadata":"0.2.2","rxjs":"7.8.2","helmet":"8.1.0"},"devDependencies":{"@types/express":"5.0.6","@types/busboy":"1.5.4"}}

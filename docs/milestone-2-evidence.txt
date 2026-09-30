@@ -1,0 +1,100 @@
+OPERATIONS IMPORT DESK — MILESTONE 2 EVIDENCE
+September 29, 2026, America/Chicago (execution crossed September 30 UTC)
+
+1. IMPLEMENTED BEHAVIOR
+
+NestJS 11.2.6 API with exact issuer/audience/algorithm validation via jose 6.2.12, Keycloak discovery/JWKS, required claims, 30-second clock tolerance and explicit access-token type check. Operator/viewer mapping is restricted to the configured API client. All import routes are authenticated and owner-scoped; operator-only upload is enforced before reading/persisting input.
+
+MongoDB 7.7.0 Node driver targets a real MongoDB 8.0.15 server. Startup creates/verifies the unique owner+schema+content-hash index, owner-history index, approved nextDispatchAt index and expired-lease index. Index conflict prevents serving HTTP. One atomic pipeline upsert uses database time and preserves the entire existing document on duplicate. SHA-256 covers exact input bytes; majority+journal acknowledgement is requested.
+
+Uploads require one CSV file part, no extra fields/files; file <=256 KiB, entire envelope <=272 KiB, including chunked requests. Fatal UTF-8 and structural CSV validation occur before persistence. MIME/filename and encoding checks, a ten-second upload timeout, bounded buffering and ten uploads per minute per verified subject/IP are implemented. Filenames are display-only and stripped of paths/control characters.
+
+List/detail use explicit response allowlists, owner filters, stable cursor pagination and safe error envelopes. Missing/foreign imports produce equivalent 404 codes/messages. Private owner identity, inputBytes, leaseToken, contentHash, nextDispatchAt, JWTs and internal errors are absent from import responses. GET /v1/me intentionally returns only the caller's subject and role, as specified.
+
+Health endpoints report liveness/MongoDB readiness. CORS is restricted to the configured origin; security/cache headers are set. Required configuration and discovery failures stop startup. No product OIDC login screen/browser session handling is implemented in M2.
+
+No Redis/BullMQ worker, dispatcher, recovery execution, retry endpoint, CSV export/result publication or UI was added. Every accepted import remains PENDING. nextDispatchAt is stored/indexed but not dispatched.
+
+2. COMMANDS AND ACTUAL RESULTS
+
+Environment: Node v24.19.0, npm 11.9.0, Java OpenJDK 17.0.20, MongoDB server 8.0.15, Keycloak 26.4.0. Docker is unavailable.
+
+From the repository root:
+- npm install --ignore-scripts --no-audit --no-fund --fetch-retries=0 --fetch-timeout=30000
+  PASS: installed 122 added packages after declaring exact API dependencies; lockfile updated.
+- npm run typecheck
+  PASS: tsc -p tsconfig.json --noEmit.
+- npm run check
+  PASS: strict typecheck and build; 37 unit tests (7 API-boundary units + 30 retained M1 tests), zero failures/skips.
+- npm audit --omit=dev --json
+  PASS: 0 known production dependency vulnerabilities reported. This is a registry advisory check, not a complete security audit or a container-image assessment.
+- npm ci --ignore-scripts --no-audit --no-fund --fetch-retries=0 --fetch-timeout=30000 && npm run check
+  PASS: 127 packages installed from lockfile; strict typecheck/build and all 37 unit tests passed again, zero failures/skips.
+
+Real integration run, exact successful launcher:
+MONGOD_BIN=/tmp/odi-workspace/m2-runtime/mongodb-linux-x86_64-ubuntu2204-8.0.15/bin/mongod KEYCLOAK_HOME=/tmp/odi-workspace/m2-runtime/keycloak-26.4.0 timeout 100s bash scripts/test-real-services.sh
+
+The harness executed:
+M2_MONGO_URI=mongodb://127.0.0.1:27018 M2_OIDC_ISSUER=http://127.0.0.1:8081/realms/operations-import-desk npm run test:integration
+
+That script expands to:
+npm run build && node --test --test-reporter=tap --test-timeout=60000 --test-concurrency=1 dist/apps/api/test/integration.test.js
+
+RESULT: PASS, 23 tests, 23 passed, 0 failed, 0 cancelled, 0 skipped; approximately 34.4 seconds, including real token-expiration wait. Saved TAP output: docs/m2-integration.tap.txt. No mocks or in-memory substitute database/issuer were used.
+
+Services were downloaded from official distributions and launched as child processes in the same tool session as the tests. MongoDB used fresh temporary on-disk WiredTiger storage; Keycloak used a fresh local H2 database with synthetic fixtures. The harness stops its own service children when finished. These are native binaries, not Docker containers.
+
+Intermediate failures, retained honestly:
+- MongoDB initially failed opening its data directory in the workspace filesystem. A fresh /tmp data directory and disabled Unix socket allowed normal startup; no access escalation was used.
+- A standalone integration command in a different tool session could not reach Keycloak (ECONNREFUSED); no criteria passed from that attempt. The corrected harness keeps services/tests together.
+- A test-realm filename did not match Keycloak's required import naming. Renaming the fixture to operations-import-desk-realm.json corrected startup.
+- The first HTTP run exposed Busboy parts-limit semantics that rejected a valid upload. Corrected envelope configuration still rejects extra files/fields.
+- An early cleanup path lacked a file-stream error listener for rejected parts. The listener is now installed before rejecting the part; the final suite has no asynchronous exception warnings.
+- A leakage assertion incorrectly treated the legitimate event actor value 'owner' as a private JSON key. The assertion now checks keys, and projections remain explicit.
+- Keycloak's default roles scope added API audience to a supposed wrong-audience fixture. The fixture now omits that scope while retaining the basic subject scope, and the suite asserts the fixture really lacks the API audience. API audience checks were not weakened.
+
+3. ACCEPTANCE EVIDENCE
+
+A06 — REAL INTEGRATION PASS for M2:
+Eight concurrent identical uploads from one owner yield exactly one 202 and seven 200 responses with one ID/document. Stored hash/input bytes match the original; run/attempt remain 1/0 and state PENDING. Filename-only change reuses the ID; changed bytes create a distinct import. Different verified users get separate records for identical bytes and cannot read/list each other's records. Index existence and incompatible-index startup rejection tested.
+
+A07 — REAL INTEGRATION PASS:
+An HTTP proxy forwards the actual upload, receives the committed upstream response, then destroys the downstream response without sending it to the caller. Identical-byte resubmission recovers the same ID with 200 and one stored document. A separate API shutdown/restart test confirms the import and duplicate identity survive process replacement. This does not claim database power-loss or replica failover qualification.
+
+A15 — REAL INTEGRATION PASS for implemented M2 routes:
+Real Keycloak Authorization Code + PKCE S256 exchanges issue the test tokens; password grants are disabled. Operators and viewers map correctly; viewer upload and role-less access are denied. A viewer-owned fixture is readable only by that viewer. Missing, malformed, tampered, wrong-audience, wrong-issuer, expired and ID tokens are rejected. A locally signed HS256 negative-control token is also rejected. Expiry test uses a real short-lived Keycloak token and waits past expiry plus the configured tolerance. Wrong-issuer test uses real discovery/JWKS under an alternate local hostname. Signature/audience/issuer validations are real, not mocked.
+
+A15 UNIT evidence, separately:
+Configured-client-only role mapping, malformed role shapes, missing subject, wrong issuer/token type, operator-only action checks and startup config restrictions. Unit tests do not stand in for token-signature or MongoDB tests.
+
+A15 future-route coverage remains outside M2:
+Download/errors/retry routes do not exist and return 404. M2 does not claim their future owner-authorization behavior. Browser client token storage, nonce handling and UI flow remain M4 work.
+
+A04/A16 — REAL HTTP + DATABASE evidence:
+Empty multipart, unknown fields, wrong file field, extra file, 256 KiB+1 byte file, malformed UTF-8, wrong CSV header, malformed CSV quoting and unsupported file type are rejected with no stored record. Exactly 256 KiB structurally valid input is accepted. Oversized full envelopes, malformed multipart, missing boundary and nonmultipart JSON rejected. Chunked oversized preamble rejected without Content-Length. Tests inspect the actual collection after rejection. Rate limit, safe error body and response projections are checked. Filename sanitation has unit coverage; CSV formula export and UI rendering are later milestones.
+
+4. SECURITY AND CORRECTNESS LIMITS
+
+No known material correctness/security blocker remains in implemented M2 behavior after the final tests.
+- Verification uses standalone MongoDB with journal acknowledgement, not a replica set, failover, disk-loss or production deployment.
+- Local test realm contains openly documented synthetic users and test clients, not production credentials. Never deploy this fixture publicly. Container image vulnerability qualification is not performed.
+- API is a loopback development service; proxy/TLS production hosting configuration is not qualified.
+- Guard/HTTP tests cover existing routes only. No worker, retry/result-publication or UI correctness claims.
+- New API startup depends on successful trusted OIDC discovery; verification fails closed if required keys cannot be obtained. Key rotation/outage scenarios are not exhaustively integration-tested.
+- Dependency audit reports zero known production npm vulnerabilities at execution time; it is not a guarantee of absence of security defects.
+
+5. CARRIED VERIFICATION ITEM
+
+M1-Docker: Docker Compose configuration exists, but reproducible container startup has not been verified because Docker is unavailable in the current execution environment.
+
+Status: OPEN, environment-dependent verification item, not an implementation failure or a blocker for M2. Carry forward and verify in the first environment where Docker is actually available, no later than the M5 clean-checkout/handoff gate. Native MongoDB/Keycloak integration tests do NOT mark Docker/container startup passed.
+
+6. LEARNING NOTES
+
+NestJS: authentication guards run before controller work; request parsing can be deliberately restricted instead of accepting a generic body parser. Typed providers/module boundaries keep token verification, input parsing and persistence separate. Exception filters must return explicit safe envelopes rather than raw errors.
+
+MongoDB: concurrent request correctness depends on the database unique index and atomic upsert, not a check-then-insert in application code. Pipeline updates need $literal for user-controlled values and $$NOW for database-owned timestamps. Explicit response DTOs prevent BSON/private fields from leaking. Native real-server tests exposed integration behavior that unit assertions cannot establish.
+
+OIDC/Keycloak: ID tokens and API access tokens have different purposes. Signature validity alone is insufficient: issuer, audience, expiry, access-token type and intended client roles all matter. Keycloak scopes/mappers can add audience claims; negative fixtures must verify their own assumptions. PKCE-enabled code flow worked against a real identity provider without a product UI or password grants.
+
+Assistance: implementation and tests were created with Codex assistance. Passing automated evidence is not a claim that Phillip-Bryan has professional NestJS/OIDC experience or has already independently mastered each implementation detail.

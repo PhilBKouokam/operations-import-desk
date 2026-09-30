@@ -1,0 +1,41 @@
+{
+  "name": "operations-import-desk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
+  "packageManager": "npm@11.9.0",
+  "workspaces": [
+    "packages/*",
+    "apps/api",
+    "apps/worker",
+    "apps/web"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && npm run typecheck -w @operations-import-desk/web",
+    "test": "npm run test:unit",
+    "check": "npm run typecheck && npm test",
+    "infra:config": "docker compose config --quiet",
+    "infra:up": "docker compose up -d --wait",
+    "infra:down": "docker compose down",
+    "start:api": "node --env-file=.env dist/apps/api/src/main.js",
+    "test:unit": "npm run build && node --test dist/packages/input/test/*.test.js dist/apps/api/test/unit.test.js dist/apps/worker/test/unit.test.js",
+    "test:integration": "npm run build && node --test --test-reporter=tap --test-timeout=60000 --test-concurrency=1 dist/apps/api/test/integration.test.js",
+    "start:worker": "node --env-file=.env dist/apps/worker/src/main.js",
+    "test:m3": "npm run build && node --test --test-reporter=tap --test-timeout=780000 --test-concurrency=1 --test-name-pattern=\"${M3_TEST_PATTERN:-.}\" dist/apps/worker/test/integration.test.js",
+    "test:m3:recovery": "npm run build && node --test --test-reporter=tap --test-timeout=180000 --test-concurrency=1 --test-skip-pattern=\"A20 ten minutes\" dist/apps/worker/test/integration.test.js",
+    "dev:web": "npm run dev -w @operations-import-desk/web",
+    "build:web": "npm run build -w @operations-import-desk/web",
+    "test:m4": "playwright test --config=apps/web/playwright.config.ts",
+    "docs:openapi": "node scripts/generate-openapi.mjs",
+    "docs:check": "node scripts/generate-openapi.mjs --check",
+    "measure": "npm run build && node scripts/measure.mjs"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@types/node": "24.10.1"
+  }
+}

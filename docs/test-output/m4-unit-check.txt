@@ -1,0 +1,79 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 check
+> npm run typecheck && npm test
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit && npm run typecheck -w @operations-import-desk/web
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> @operations-import-desk/web@0.4.0 typecheck
+> tsc --noEmit
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 test
+> npm run test:unit
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 test:unit
+> npm run build && node --test dist/packages/input/test/*.test.js dist/apps/api/test/unit.test.js dist/apps/worker/test/unit.test.js
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ A15 unit: only configured client roles map, operator wins explicit dual-role mapping (2.121153ms)
+✔ A15 unit: missing subject, wrong issuer and ID-token type denied (0.354514ms)
+✔ unit: startup configuration rejects missing identity and unsafe issuer (0.764178ms)
+✔ unit: cursor and query validation reject unknown, injected and malformed shapes (1.730276ms)
+✔ unit: response allowlists exclude private fields even when extra fields exist (0.754234ms)
+✔ unit: bounded rate limiter independently enforces subject and IP and expires windows (0.590702ms)
+✔ A16 unit: display filename strips path/control characters and limits code points (0.76506ms)
+✔ A16 CSV quotes all cells and neutralizes active prefixes without mutating input (0.91428ms)
+✔ Stable notification IDs include run, never dispatch count (0.188799ms)
+✔ Explicit failure classification does not inspect exception messages (0.227075ms)
+✔ Chunked validation preserves cross-chunk duplicate detection (26.002895ms)
+✔ A04: 1000 records accepted; 1001 rejected (66.06122ms)
+✔ A04: exact 256 KiB file accepted structurally; one byte over rejected (115.592861ms)
+✔ A04: 128 decoded code points accepted; 129 rejected, including astral Unicode (2.386154ms)
+✔ A04: 4096-byte record passes byte gate but violates cell limit; 4097 hits byte gate (1.793553ms)
+✔ A04: record-byte gate counts UTF-8 bytes (0.423104ms)
+✔ A04: invalid UTF-8 truncated multibyte (0.146687ms)
+✔ A04: invalid UTF-8 illegal continuation (0.140578ms)
+✔ A04: invalid UTF-8 UTF16 BOM (0.609329ms)
+✔ A04: malformed quoting "\"SHP1,HOU,AUS,2026-10-01,1,CAR1" (0.581769ms)
+✔ A04: malformed quoting "SH\"P1,HOU,AUS,2026-10-01,1,CAR1" (0.679354ms)
+✔ A04: malformed quoting "\"SHP1\"x,HOU,AUS,2026-10-01,1,CAR1" (0.844367ms)
+✔ A04: rejects incorrect header carrier_code,weight_kg,scheduled_date,destination_code,origin_code,shipment_id (0.178434ms)
+✔ A04: rejects incorrect header shipment_id,shipment_id,destination_code,scheduled_date,weight_kg,carrier_code (0.116582ms)
+✔ A04: rejects incorrect header SHIPMENT_ID,ORIGIN_CODE,DESTINATION_CODE,SCHEDULED_DATE,WEIGHT_KG,CARRIER_CODE (0.166236ms)
+✔ A04: rejects incorrect header  shipment_id,origin_code,destination_code,scheduled_date,weight_kg,carrier_code (0.110643ms)
+✔ A04: missing and extra columns rejected in header and data (9.338032ms)
+✔ A04: empty, BOM-only and header-only files rejected (0.528571ms)
+✔ A05: LF/CRLF, optional BOM and single final line ending produce same result (2.950107ms)
+✔ A05: interior blank and second terminal newline rejected; bare CR rejected (0.335365ms)
+✔ A05: quoted commas and doubled quotes decode without silent changes (0.439429ms)
+✔ A05: decoded quotes count once for cell limit (0.693184ms)
+✔ A05: embedded LF and CRLF in quoted fields rejected (0.723819ms)
+✔ A05: only surrounding ASCII spaces trimmed; original rejected values retained (1.150359ms)
+✔ A05: leap years, month bounds and 2000–2099 enforced independently of today (4.291639ms)
+✔ A05: exact integer grams, minimum and maximum weights, canonical formatting (0.664491ms)
+✔ A05: invalid weight grammar and range never rounded or coerced (1.043571ms)
+✔ A05: field formats and boundaries; destination differs; one primary error per field (4.440434ms)
+✔ A05: duplicates invalidate all occurrences after trimming, even already-invalid rows (0.34524ms)
+✔ A05: repeated runs deterministic and input not mutated; every record categorized once (1.54996ms)
+✔ A05: synthetic sample files match documented row outcomes (1.427328ms)
+ℹ tests 41
+ℹ suites 0
+ℹ pass 41
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 401.573393

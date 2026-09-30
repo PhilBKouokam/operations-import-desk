@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'./test',testMatch:'*.spec.mjs',fullyParallel:false,workers:1,timeout:60000,expect:{timeout:12000},reporter:'list',outputDir:'../../test-results/m4',use:{baseURL:'http://127.0.0.1:5173',headless:true,viewport:{width:1365,height:950},screenshot:'only-on-failure',trace:'off',launchOptions:{...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{}),args:['--no-sandbox']}}});

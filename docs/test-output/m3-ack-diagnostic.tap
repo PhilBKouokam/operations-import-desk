@@ -1,0 +1,21 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 build
+> tsc -p tsconfig.json
+
+TAP version 13
+# Subtest: A11 SIGKILL after committed result before transport ack; stalled job redelivers without mutation
+ok 1 - A11 SIGKILL after committed result before transport ack; stalled job redelivers without mutation
+  ---
+  duration_ms: 16030.89568
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 16421.134893

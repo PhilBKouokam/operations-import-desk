@@ -1,0 +1,4 @@
+shipment_id,origin_code,destination_code,scheduled_date,weight_kg,carrier_code
+SHP001,HOU,AUS,2026-10-01,12.500,CAR1
+SHP002,DAL,HOU,2026-10-02,0.001,CAR2
+SHP003,AUS,DAL,2026-10-03,100000,CAR1

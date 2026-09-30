@@ -1,0 +1,1 @@
+PASS: native demo launcher UI 200, API Mongo readiness 200, worker Mongo/Redis readiness 200, exact Keycloak discovery issuer.

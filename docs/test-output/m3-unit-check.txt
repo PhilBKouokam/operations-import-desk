@@ -1,0 +1,74 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 check
+> npm run typecheck && npm test
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 test
+> npm run test:unit
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 test:unit
+> npm run build && node --test dist/packages/input/test/*.test.js dist/apps/api/test/unit.test.js dist/apps/worker/test/unit.test.js
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ A15 unit: only configured client roles map, operator wins explicit dual-role mapping (1.43864ms)
+✔ A15 unit: missing subject, wrong issuer and ID-token type denied (0.256189ms)
+✔ unit: startup configuration rejects missing identity and unsafe issuer (0.436907ms)
+✔ unit: cursor and query validation reject unknown, injected and malformed shapes (1.388425ms)
+✔ unit: response allowlists exclude private fields even when extra fields exist (0.50612ms)
+✔ unit: bounded rate limiter independently enforces subject and IP and expires windows (0.343509ms)
+✔ A16 unit: display filename strips path/control characters and limits code points (0.537095ms)
+✔ A16 CSV quotes all cells and neutralizes active prefixes without mutating input (1.255278ms)
+✔ Stable notification IDs include run, never dispatch count (0.247706ms)
+✔ Explicit failure classification does not inspect exception messages (0.320725ms)
+✔ Chunked validation preserves cross-chunk duplicate detection (26.476732ms)
+✔ A04: 1000 records accepted; 1001 rejected (65.071873ms)
+✔ A04: exact 256 KiB file accepted structurally; one byte over rejected (111.111642ms)
+✔ A04: 128 decoded code points accepted; 129 rejected, including astral Unicode (1.321757ms)
+✔ A04: 4096-byte record passes byte gate but violates cell limit; 4097 hits byte gate (2.100399ms)
+✔ A04: record-byte gate counts UTF-8 bytes (0.24934ms)
+✔ A04: invalid UTF-8 truncated multibyte (0.15535ms)
+✔ A04: invalid UTF-8 illegal continuation (0.129602ms)
+✔ A04: invalid UTF-8 UTF16 BOM (0.13512ms)
+✔ A04: malformed quoting "\"SHP1,HOU,AUS,2026-10-01,1,CAR1" (1.723611ms)
+✔ A04: malformed quoting "SH\"P1,HOU,AUS,2026-10-01,1,CAR1" (0.649081ms)
+✔ A04: malformed quoting "\"SHP1\"x,HOU,AUS,2026-10-01,1,CAR1" (0.361545ms)
+✔ A04: rejects incorrect header carrier_code,weight_kg,scheduled_date,destination_code,origin_code,shipment_id (0.29752ms)
+✔ A04: rejects incorrect header shipment_id,shipment_id,destination_code,scheduled_date,weight_kg,carrier_code (0.185284ms)
+✔ A04: rejects incorrect header SHIPMENT_ID,ORIGIN_CODE,DESTINATION_CODE,SCHEDULED_DATE,WEIGHT_KG,CARRIER_CODE (0.160457ms)
+✔ A04: rejects incorrect header  shipment_id,origin_code,destination_code,scheduled_date,weight_kg,carrier_code (0.144845ms)
+✔ A04: missing and extra columns rejected in header and data (0.691243ms)
+✔ A04: empty, BOM-only and header-only files rejected (0.448634ms)
+✔ A05: LF/CRLF, optional BOM and single final line ending produce same result (2.825452ms)
+✔ A05: interior blank and second terminal newline rejected; bare CR rejected (0.380183ms)
+✔ A05: quoted commas and doubled quotes decode without silent changes (0.372221ms)
+✔ A05: decoded quotes count once for cell limit (0.72296ms)
+✔ A05: embedded LF and CRLF in quoted fields rejected (0.620188ms)
+✔ A05: only surrounding ASCII spaces trimmed; original rejected values retained (1.646176ms)
+✔ A05: leap years, month bounds and 2000–2099 enforced independently of today (1.840304ms)
+✔ A05: exact integer grams, minimum and maximum weights, canonical formatting (0.847244ms)
+✔ A05: invalid weight grammar and range never rounded or coerced (1.52666ms)
+✔ A05: field formats and boundaries; destination differs; one primary error per field (3.331081ms)
+✔ A05: duplicates invalidate all occurrences after trimming, even already-invalid rows (0.426432ms)
+✔ A05: repeated runs deterministic and input not mutated; every record categorized once (0.949165ms)
+✔ A05: synthetic sample files match documented row outcomes (0.672696ms)
+ℹ tests 41
+ℹ suites 0
+ℹ pass 41
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 412.118465

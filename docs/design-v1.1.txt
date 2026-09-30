@@ -1,0 +1,231 @@
+OPERATIONS IMPORT DESK — DESIGN SPECIFICATION v1.1
+Phillip-Bryan Kouokam | September 29, 2026
+Status: Design approved September 29, 2026 with dispatcher correction incorporated. Implementation authorized sequentially; M1–M4 accepted; current milestone is M5 handoff. M1-Docker remains OPEN / UNPASSED; see M5 evidence for partial A18 and measured A19.
+
+1. PURPOSE AND SCOPE
+
+An independent learning and hiring demonstration for WebCreek's Houston Junior Full Stack Developer opening. It uses fictional shipment data and does not represent WebCreek's systems, requirements, clients, or production architecture. Phillip-Bryan is seeking his first professional software engineering role. NestJS, Redis, OIDC, and queues are learning objectives, not claimed professional experience.
+
+User: an operations coordinator receiving shipment CSV files. Outcome: submit a bounded file, leave the screen, return to a durable result, identify rejected rows, and download valid records without duplicate results after an interruption.
+
+Frozen features: one shipment schema; synthetic data only; three application screens (submit, import history, import details); two roles; real OIDC sign-in; background validation; durable results; automatic recovery; a bounded manual retry; CSV downloads; Docker setup; tests, CI, API documentation and a runbook. Sign-in is a provider redirect, not a fourth application screen.
+
+Excluded: actual shipment creation, external integrations, billing, notifications, scheduling UI, schema mapping, inline corrections, file editing, cancellation, deletion UI, search, dashboards/charts, live percentage progress, WebSockets, organizations/tenancy, administrator UI, Kubernetes, additional caching, and real customer data. No archive formats, spreadsheets, or arbitrary document uploads. No performance or production-readiness claims without measured evidence.
+
+2. PRODUCT REQUIREMENTS AND INPUT CONTRACT
+
+PR1 Submit: operator chooses one CSV, sees limits and sample download links, submits, and receives an import ID. Show 'Saved; waiting for processing' only after durable database acknowledgement. Redis availability is not required to accept a durable import. MongoDB failure produces an unavailable response, never a false success.
+PR2 History: show only the current user's imports, newest first, with filename, submission time, state and completed counts; cursor pagination, default 20 and maximum 50. No filters.
+PR3 Details: show state, run and attempt count, safe error summary, timestamps, completed counts, rejected-row details and available downloads. Poll every 3 seconds only while visible and unfinished. Do not invent percentage progress. Network failure shows 'Status unavailable; last updated …', not an inferred job failure.
+PR4 Results: accept valid rows independently; any invalid rows yield COMPLETED_WITH_ERRORS, including a file with zero valid rows. Clearly label accepted and rejected counts. A successful processing result is not an import into a real operational system.
+PR5 Recovery: automatic infrastructure retries are bounded. An operator can retry one exhausted import once, using unchanged stored input. Correcting business-data errors requires uploading a changed file.
+PR6 Accessibility: keyboard-operable form and tables, visible focus, associated labels, readable contrast, status text not dependent on color, restrained live announcements, loading/empty/error states.
+
+Input limits: UTF-8 CSV, optional UTF-8 BOM, comma delimiter, LF or CRLF, conventional quoted fields; maximum 256 KiB raw file, 1,000 data records, 128 Unicode code points per decoded cell, 4 KiB per logical record. One optional final line ending; empty interior records are errors. Embedded newlines in fields are rejected. Filename is display-only, sanitized and limited to 120 characters; never a filesystem path. Exactly one multipart field named file. Reject unknown fields.
+
+Header must contain these six columns in this exact order, with no extras or duplicates:
+shipment_id,origin_code,destination_code,scheduled_date,weight_kg,carrier_code
+
+Row rules, schema version shipment-v1:
+- Trim surrounding ASCII spaces from cell values; do not silently change case.
+- shipment_id: 1–32 characters, first character A–Z or 0–9, remainder A–Z, 0–9, '-' or '_'.
+- origin_code and destination_code: 2–8 uppercase ASCII letters/digits; must differ.
+- scheduled_date: real Gregorian date, exactly YYYY-MM-DD, years 2000–2099; no current-date-dependent rule.
+- weight_kg: positive decimal, at most 3 fractional digits, maximum 100000; no exponent or sign. Parse with integer grams, not floating-point arithmetic. Output canonical decimal kilograms without redundant zeros.
+- carrier_code: 2–12 uppercase ASCII letters/digits.
+- A repeated shipment_id within the file invalidates ALL occurrences, including otherwise valid rows. No cross-file shipment uniqueness is implied because this application validates files, not a shipment database.
+- Each invalid field has a stable code; at most one primary error per field plus duplicate-ID error. Cross-field location error attaches to destination_code. Logical record numbering: header 1, first data record 2.
+
+Envelope/structure rejection happens synchronously before creating an import: too large, invalid UTF-8, invalid quoting, wrong header, record/field limit exceeded, wrong column count, or zero data records. Business validation happens asynchronously. The bounded structural pass makes uploads safe to store; the worker remains responsible for row rules and complete-file duplicate checks. Small demo files do not require a queue for speed; the queue demonstrates an operational recovery boundary appropriate to larger workloads.
+
+3. ARCHITECTURE AND TRADEOFFS
+
+React/TypeScript -> NestJS API -> MongoDB import document.
+NestJS worker process includes a recovery/dispatch loop -> Redis/BullMQ -> validation processor -> conditional MongoDB publication.
+OIDC provider: Keycloak locally, with a seeded development realm; standards-based integration permits a later hosted provider configuration.
+
+One repository, two application processes (API and worker), one shared pure validation module. Nest modules: Auth, Imports, Processing, Health. UI grouped by the three features. No microservice network or generic workflow engine.
+
+MongoDB stores input, processing intent and final results in ONE bounded document. This avoids a database/queue dual-write transaction and multi-document result commits. Redis carries notifications containing only importId and run; it does not own business status. A five-second loop scans due pending work and expired processing leases. Before enqueueing, atomic findOneAndUpdate selects PENDING with both nextAttemptAt and nextDispatchAt <= database time and moves nextDispatchAt to database time + 30 seconds. Return the reserved import id/run; enqueue only after an acknowledged reservation. Unknown reservation outcome means no enqueue by that dispatcher; the durable delay bounds recovery. Dispatch does not change state, run, attempt, or lease. If enqueue fails or the dispatcher crashes, the import stays PENDING and becomes eligible after at most the 30-second delay plus scan scheduling once services recover. Process bounded batches of 100 reservations per scan; one bounded enqueue attempt per reservation, with a 2-second transport timeout and offline buffering disabled. Concurrent dispatchers cannot reserve the same import within its delay. Index the scans.
+
+BullMQ is deliberately a transport here: one delivery attempt per notification; database rules own retries so retry budgets survive Redis loss. Every enqueue uses stable jobId import-<UUID>-run-<run>. BullMQ suppresses a duplicate while that notification exists. Remove completed and failed transport jobs immediately so a later Mongo-owned dispatch can replace them. A waiting/active notification therefore occupies at most one queue job per import/run; at most two across the two permitted runs. This bounds retained notifications for a fixed accepted-import set even with no consumers. Configure stalled recovery conservatively and test pinned-version behavior. Duplicate or delayed notifications remain harmless because the processor must atomically claim the current MongoDB run. A notification delivered before nextAttemptAt exits without consuming an attempt; MongoDB redispatches it later. No dependence on queue events to finalize business state.
+
+The Mongo-owned throttle bounds enqueue attempts to one per import per 30 seconds while PENDING; the stable transport ID also bounds waiting notification cardinality. A throttle alone would not provide that cardinality bound. No queue lookup is used to decide business state or whether durable intent exists. Redis loss removes transport IDs but not MongoDB intent; redispatch recreates a notification. No outbox collection or Redis cache is added. Completed/failed queue retention is intentionally disabled to permit redispatch; diagnostic history stays in MongoDB and logs. This is the sole approved architecture correction.
+
+Input plus complete serialized result must remain below an application ceiling of 4 MiB per document, checked before persistence. Field/row limits and bounded error shapes support this ceiling. Exceeding it is a terminal internal size-limit failure, with no partial result publication. Larger files would need a different storage design, outside v1.
+
+4. STATE MACHINE AND INVARIANTS
+
+PENDING -> PROCESSING: worker atomically claims an eligible document and increments attempt.
+PROCESSING -> COMPLETED: all rows valid; atomically publish full result.
+PROCESSING -> COMPLETED_WITH_ERRORS: one or more invalid rows; atomically publish full result.
+PROCESSING -> PENDING: transient failure or expired lease, attempts remaining; set nextAttemptAt and nextDispatchAt to the same backoff deadline.
+PROCESSING -> FAILED: nonrecoverable system failure, or automatic budget exhausted.
+FAILED -> PENDING: authorized manual retry, only when retryable=true and run=1; set run=2, attempt=0 and both scheduling timestamps to database time.
+COMPLETED and COMPLETED_WITH_ERRORS are terminal. FAILED is terminal after run 2 or for nonretryable errors.
+
+PENDING means durable intent, not proof that Redis accepted a notification. The detail screen may explain that processing is delayed; it must not claim a specific outage from elapsed time alone.
+
+Invariants:
+I1 Each owner + exact input bytes + schema version has at most one import document.
+I2 Only a current lease holder for the current run may publish results or processing errors.
+I3 Results are absent until one atomic terminal update publishes counts, rows and errors together.
+I4 completed validCount + rejectedCount = totalRows; each input record appears in exactly one category.
+I5 Terminal successful results never change. Redelivery returns without mutation.
+I6 Read, retry and download are owner-scoped on the server.
+I7 Queue loss cannot erase an accepted import. Recovery assumes MongoDB durable storage survives and dependencies/processes eventually return.
+I8 At most 3 execution attempts per run and 2 runs per import; duplicate queue delivery does not consume an attempt unless it wins a claim.
+I9 Dispatch reservations never consume worker attempts. No more than one reservation per import per 30 seconds absent an explicit processing state transition. No more than one retained queue notification per import/run; total growth from newly accepted imports is separate from duplicate growth.
+
+Claim uses atomic findOneAndUpdate matching id, run, PENDING, nextAttemptAt <= database time and attempt < 3; sets PROCESSING, new random leaseToken, leaseExpiresAt and attempt+1. Lease lasts 60 seconds. Processing has a 30-second deadline, checked between chunks; validation yields to the event loop. No heartbeat subsystem is needed at these limits.
+
+All worker writes match id, run, PROCESSING, leaseToken, and an unexpired lease using database time. An expired/stale worker cannot finalize even before recovery has run. Recovery updates only PROCESSING documents whose lease expired; it clears the old token and either returns to PENDING or fails an exhausted run. Concurrent recoverers use conditional updates. Duplicate notifications during a live lease do nothing.
+
+5. DATA MODEL
+
+Collection imports:
+- _id: server-generated UUID string.
+- owner: { issuer, subject }; taken only from verified identity, never request input.
+- schemaVersion: literal shipment-v1.
+- contentHash: SHA-256 of exact raw file bytes (BOM and line endings included).
+- filename, byteSize, inputBytes: sanitized label, bounded size, BSON binary input.
+- state: PENDING | PROCESSING | COMPLETED | COMPLETED_WITH_ERRORS | FAILED.
+- run: 1 or 2; attempt: 0–3 within current run; nextAttemptAt; nextDispatchAt (internal dispatch eligibility). Both scheduling timestamps initialize to database time on insertion. Worker claim ignores nextDispatchAt, which throttles only dispatch.
+- leaseToken, leaseExpiresAt: nullable internal fields.
+- createdAt, updatedAt, startedAt, finishedAt: UTC server timestamps; finishedAt applies to current run.
+- lastFailure: nullable { code, safeMessage, retryable, occurredAt }; no raw exception or input values.
+- result: null or { totalRows, validCount, rejectedCount, acceptedRows, rejectedRows }.
+- acceptedRows: { recordNumber, shipment_id, origin_code, destination_code, scheduled_date, weightGrams, carrier_code }.
+- rejectedRows: { recordNumber, values: six bounded strings, errors: [{field,code,message}] }.
+- events: bounded history of state transitions with time, run, attempt, reasonCode and actor (system or owner); maximum 32 entries. Do not log duplicate notification no-ops.
+
+Indexes: unique(owner.issuer, owner.subject, schemaVersion, contentHash); owner+createdAt+_id descending for pagination; state+nextDispatchAt+_id+nextAttemptAt (dispatch selection sorted by nextDispatchAt then _id; nextAttemptAt is an additional due-time predicate); state+leaseExpiresAt. Provision and verify indexes before accepting uploads. No TTL index: records persist until an explicit local demo reset. Demo uses synthetic records; retention and deletion for real data remain a future deployment decision.
+
+No users, shipments, results, sessions or audit collections are needed. Roles come from verified provider claims. Database projection always excludes inputBytes, leaseToken, nextDispatchAt and internal error details from responses.
+
+6. API CONTRACT
+
+Prefix /v1. JSON dates are ISO 8601 UTC; UUID strings for import IDs. Authentication via Authorization: Bearer <access token>. All JSON bodies reject unknown fields. CORS permits exact configured UI origins only.
+
+GET /v1/me -> 200 { subject, role: operator|viewer }. No email required.
+POST /v1/imports -> multipart file; operator only. New: 202 { import: ImportSummary, duplicate:false }, Location header. Same owner/hash/schema: 200 { import: ImportSummary, duplicate:true }, same ID and unchanged state. Concurrent inserts resolve unique-key conflict by reading the winner. If response is lost, resubmitting identical bytes recovers the ID.
+GET /v1/imports?limit=20&cursor=<opaque> -> 200 { items: ImportSummary[], nextCursor:string|null }. Stable descending createdAt/id cursor, owner-scoped. Invalid cursor/limit: 400.
+GET /v1/imports/:id -> 200 ImportDetail. A missing or another owner's import returns identical 404.
+GET /v1/imports/:id/errors?offset=0&limit=50 -> 200 { items:RejectedRow[], total, nextOffset:number|null }. Maximum limit 100; only successful terminal processing states; otherwise 409 RESULTS_NOT_READY. Zero errors returns empty items.
+GET /v1/imports/:id/download?kind=accepted|errors -> 200 text/csv attachment, Cache-Control:no-store, fixed server-generated filename. Available in both completed states; an empty category yields header-only CSV. No unprotected static download URL. Other states: 409 RESULTS_NOT_READY.
+POST /v1/imports/:id/retry -> JSON { expectedRun:1 }; operator only. Eligible FAILED run 1: atomically set run 2/PENDING and return 202 ImportSummary. If run already 2, return 200 current summary without restarting, including after completion; this makes a lost-response retry safe. Otherwise 409 RETRY_NOT_ALLOWED. Unknown expectedRun/body shape: 400.
+GET /health/live -> process health only, 200 when responsive; no dependency details exposed.
+GET /health/ready -> API MongoDB readiness (200/503); worker readiness includes MongoDB and Redis via its internal health listener. Missing critical OIDC configuration fails startup. UI must not infer job status from health endpoints.
+
+ImportSummary: { id, filename, byteSize, state, run, attempt, createdAt, updatedAt, counts:null|{totalRows,validCount,rejectedCount}, canRetry }.
+ImportDetail extends summary: { startedAt, finishedAt, nextAttemptAt, lastFailure, events }. Errors fetched separately; input and accepted records delivered only through authorized downloads.
+
+Error envelope: { error:{code,message,requestId,details?} }; details only for safe structural validation. Statuses: 400 malformed request; 401 missing/invalid token; 403 valid identity lacking action role; 404 absent/not-owned resource; 409 invalid state; 413 raw size limit; 415 unsupported upload type; 422 structural CSV failure; 429 rate limit; 503 temporary infrastructure failure; 500 unexpected internal failure. No stack traces or tokens.
+
+CSV downloads quote/escape every cell. Error exports flatten one row per field error: record_number,field,code,message,shipment_id,origin_code,destination_code,scheduled_date,weight_kg,carrier_code. Prefix spreadsheet-active values beginning (after whitespace) with =,+,-,@,tab or carriage return with an apostrophe; RFC CSV quoting alone does not prevent formula execution. This escaping is for exported presentation, not input mutation. React renders values as plain text.
+
+7. AUTHORIZATION AND SECURITY
+
+OIDC Authorization Code flow with PKCE S256 through a maintained client library; verify state/nonce via library. SPA is a public client with no client secret. Keep tokens in memory; reload may redirect through existing provider session. No application password handling and no localStorage tokens. API consumes access tokens, never ID tokens.
+
+API validates signature via issuer JWKS, fixed issuer, intended API audience, expiration, allowed algorithm, and required subject. Map only the configured API client roles; do not trust request-supplied roles. Bound clock tolerance to 30 seconds. Unknown signing key with failed refresh denies access; valid cached keys can continue according to library policy. Never log tokens. Configure development access tokens for short lifetimes; role revocation may take until token expiration. HTTPS required for public deployment; local HTTP exception only for loopback development.
+
+Permission matrix:
+- operator: create imports; list/read/download OWN imports; retry OWN eligible failures.
+- viewer: list/read/download OWN seeded demonstration imports; cannot create or retry.
+- neither configured role: forbidden.
+No cross-user support/admin bypass. Test with operator A, operator B and a viewer. Viewer-owned sample data is seeded locally, not transferred from another user. Worker accesses database/queue internally, has no user-controlled owner override and no public mutation endpoint.
+
+Limit uploads to 10/minute per verified subject and IP at the API edge; bound multipart memory before buffering; rate-limit middleware must not depend on Redis to preserve the queue-outage demonstration. Initial single API instance uses local limits; distributed limits are explicitly outside this deployment scope. Use restrictive headers, exact redirect URIs/CORS origins, dependency lockfile, environment validation, uncommitted secrets and non-public database/Redis ports in hosted deployment. Keycloak development credentials are local-only; never ship a publicly accessible development realm with default admin credentials.
+
+8. DUPLICATES, RETRIES AND FAILURE SCENARIOS
+
+Duplicate means identical bytes for the same verified owner and schema version. Filename changes do not create a new import; changed bytes (including line endings) do. Different users get separate imports and never learn another user's existence. Identical successful or failed uploads return the existing record; a failed record is not automatically restarted by upload. No extra Idempotency-Key protocol is required for this bounded immutable request.
+
+Three execution attempts per run. Transient failures schedule waits of 2 seconds then 4 seconds; the five-second scan adds scheduling delay. Queue unavailability does not consume attempts. Worker death consumes the claimed attempt; expired-lease recovery observes the same budget. Manual retry permits one more three-attempt run. Business errors are results, never retried. Unexpected deterministic parser/schema/internal errors are nonretryable; transient database/network/deadline failures are retryable. Classify by explicit error type, not string matching. A database outage that prevents recording an error leaves the lease to expire; recovery handles it after return.
+
+Failure -> expected behavior:
+- MongoDB unavailable before acceptance: 503; upload again; no success claim.
+- MongoDB commit succeeds but response is lost: exact-byte resubmit returns same ID.
+- Redis unavailable after acceptance: remain PENDING; eventual scan dispatches after Redis returns.
+- API crashes after durable insert, before enqueue: independent worker scan finds intent.
+- Two notifications/workers race: one claim wins; other exits; no duplicate publication.
+- Worker dies during processing: lease expires; another attempt reprocesses the whole bounded file.
+- Old worker resumes after expiry: conditional publication rejected, even if no new worker has finished.
+- MongoDB unavailable at publication: no partial result; after recovery retry or observe already-committed terminal state.
+- Result committed but queue acknowledgement lost: redelivery observes terminal state and exits.
+- Redis data is lost: durable unfinished imports are redispatched; old in-flight claims remain protected by leases.
+- Retries exhausted: FAILED with safe message, eligible one-time manual retry; no endless loop.
+- Invalid business data: completed-with-errors; no automatic retry.
+- OIDC unavailable: new sign-in fails clearly; protected API never falls back to anonymous access.
+- Client reload/network outage: recover by fetching durable state; keep inputs/results owner-protected.
+
+9. ACCEPTANCE TESTS AND EVIDENCE
+
+Acceptance requirements below remain planned unless a milestone evidence report explicitly records execution. Integration tests use real MongoDB and Redis containers; security end-to-end tests include real Keycloak-issued tokens. Fault injection is through test harness/process control, never public production endpoints.
+
+A01 Happy path: submit 3 valid rows -> 202 then COMPLETED; counts 3/3/0; accepted CSV matches normalized input; error CSV header only.
+A02 Mixed rows: one valid, one invalid date, two duplicate IDs -> COMPLETED_WITH_ERRORS, counts 4/1/3; both duplicates rejected with record numbers; explanations actionable.
+A03 All invalid -> completed-with-errors, zero valid, accepted export header-only; no retry button.
+A04 Structure/limits: test exact boundaries and one beyond each raw-byte, record, field, record-byte bound; malformed UTF-8/quotes/header/column count and empty file rejected before persistence.
+A05 Determinism: BOM, CRLF, quoted commas, leap dates, maximum weight, decimal precision, whitespace, interior blanks and embedded newlines follow documented rules; repeated validation gives identical outputs.
+A06 Concurrent same-byte uploads from one owner produce one document/ID; different filename reuses ID; changed bytes produce new ID; different owners remain isolated.
+A07 Lost HTTP response after insert followed by same upload returns durable existing record, no extra processing effect.
+A08 Stop Redis, upload -> durable PENDING; restart Redis -> completed without another upload. Restart API between insert and dispatch -> same result.
+A09 Kill worker after claim -> recovery after lease expiry; counts and results correct. Evidence target: recovery begins within 75 seconds after dependencies and a worker are healthy, for a small isolated fixture.
+A10 Force old lease to expire, claim with another worker, then release the old worker -> stale worker cannot write; current worker alone publishes.
+A11 Crash after result commit but before queue acknowledgement -> terminal results unchanged on redelivery. Concurrent workers yield one publication.
+A12 Force 3 transient executions -> FAILED/run1/attempt3; manual retry -> run2; replay retry request never starts run3; run2 exhaustion is terminal. Nonretryable failures reject manual retry.
+A13 Lose Redis contents while work is pending/processing -> recovery from MongoDB intent without duplicate outputs or reset attempt budget.
+A14 Database failure before write gives no false success; failure/uncertain acknowledgement during finalization yields either one complete terminal document or a recoverable unfinished document, never partial results.
+A15 Auth: absent, expired, wrong issuer, wrong audience, tampered and ID tokens denied; operator B gets 404 for A's detail/errors/download/retry. Viewer reads own fixture and is denied upload/retry. Missing role denied. List never leaks another owner.
+A16 Malicious CSV cell displayed as text; downloaded formula payload neutralized; oversized multipart blocked before unbounded buffering; unknown fields and unsafe filename cannot change storage path or identity.
+A17 UI: keyboard-only submit/history/details; error/loading/empty/network states readable; refresh and leave/return retain durable state; no misleading progress/queue claims.
+A18 Handoff: clean checkout + documented environment + Docker steps launches seeded demo; CI runs validation/API/UI/integration checks; another developer can follow the Redis outage and worker-recovery runbooks with recorded IDs.
+A19 Measurement: record 100 and 1,000-row processing runs, environment, latency, memory and result sizes. One- versus two-worker concurrent-import experiment only after correctness passes; report measured results and limits, no inferred enterprise capacity.
+
+A20 Dispatch boundedness (M3): pause only consumers while dispatcher and real MongoDB/Redis remain healthy; run 5-second scans with two dispatchers for 10 minutes. For each fixed PENDING import assert <= 1 + floor(elapsed/30 seconds) successful dispatch reservations, exactly one waiting notification per run, attempt=0, unchanged durable input/state. Resume consumers -> completion without another upload. Repeat enqueue failure and crash after reservation/before enqueue: eligibility returns after delay and completion follows service recovery. Delete Redis transport data -> redispatch from MongoDB. Test a transport no-op before nextAttemptAt, completion/failure auto-removal and stale run notifications; none may strand eligible MongoDB work or consume an attempt without a claim. Cardinality bound is structural through stable job IDs, not inferred solely from a finite-duration observation.
+
+10. OPERATIONS AND HANDOFF
+
+Structured logs: requestId, importId, run, attempt, event, duration, safe error code; exclude tokens, raw file contents and full rejected rows. State events support the details timeline; logs support troubleshooting. Runbook covers pending work, expired leases, dependency outages, retry exhaustion, restoring services, and verifying completion. No automated alert platform in v1; document recommended production signals (oldest pending age, expired leases, failure count, processing duration) and where a senior team would wire alerts.
+
+Docker Compose includes UI/API, worker, MongoDB, Redis and Keycloak with development-only fixtures. CI validates types/lint, pure rules, API permissions, actual dependency integration and critical browser flow. Pin versions during implementation after compatibility review. Public hosting feasibility is assessed after local correctness; a static mock is not a deployed backend demo. If safe economical hosting is impractical, deliver reproducible local demo plus a short recorded walkthrough and state that limitation.
+
+Repository handoff: README, this design, generated OpenAPI contract, three short architecture decisions (bounded single document, Mongo-owned processing/retries, OIDC/ownership), sample good/bad CSVs, test evidence, operational runbook, and honest limitations. Record AI assistance and learning notes. The article is written from completed evidence and connects CalorieBank only through verified transferable experience.
+
+11. IMPLEMENTATION MILESTONES AFTER DESIGN REVIEW
+
+M1 Foundation and input rules: repository, TypeScript structure, containers, pinned dependencies, shared schema/parser and boundary tests. Exit: reproducible dependency startup and A04/A05 rule tests.
+M2 Identity and durable API: OIDC, owner guards, indexes, input persistence/deduplication, read contracts. Exit: A06/A07/A15 and no secret/identity leakage.
+M3 Processing and recovery: Mongo claims, queue transport, dispatch scan, fenced atomic publication, retry policy, CSV export. Exit: A01–A03 and A08–A14/A16/A20; do not add visual polish to conceal reliability gaps.
+M4 Three-screen UI: complete workflow, error states, keyboard review, safe downloads and retry controls. Exit: A17 and end-to-end workflow.
+M5 Handoff and application package: CI/reproducibility, bounded measurements, deployment feasibility, evidence-backed article, repository/demo links and draft message to Ivan. Exit: A18/A19; every claim tied to observed results; no outreach sent without explicit authorization.
+
+Each milestone reports delivered behavior, commands/tests actually run, unresolved gaps and what was learned. After user design review, proceed sequentially without adding recurring approval gates; stop for a material scope change or an unresolved correctness/security blocker.
+
+12. DESIGN REVIEW AND SOURCE NOTES
+
+Review checklist: ownership is explicit; state and budgets survive queue loss; stale workers cannot publish; results publish atomically; duplicate policy is deterministic; business errors do not trigger retries; input/result bounds permit simple storage; deployment and mentorship claims remain honest. Remaining implementation review items are library configuration and verification, not open product features.
+
+Ask senior engineers to review lease/fencing and durable dispatch choices, identity-provider configuration, access-token validation, the single-document limit, observability/rollout expectations and which abstractions are unnecessary. Learn their existing standards before proposing this architecture for an actual team.
+
+Public sources consulted; design choices above are ours, not source mandates:
+- Exact role: https://careers.webcreek.com/positions/junior-full-stack-developer-react-nestjs/
+- Operational inspiration: https://www.webcreek.com/en/our-work/transforming-logistics-operations-with-a-custom-transportation-management-system/
+- Nest queue integration: https://docs.nestjs.com/techniques/queues
+- Retry-safe job design: https://docs.bullmq.io/patterns/idempotent-jobs
+- Queue retries/stalls: https://docs.bullmq.io/guide/retrying-failing-jobs and https://docs.bullmq.io/guide/workers/stalled-jobs
+- Identity protocol: https://openid.net/specs/openid-connect-core-1_0.html
+
+Design review is complete with the v1.1 dispatcher correction. M1 is accepted with the carried M1-Docker verification item. M2 and M3 are accepted. M4 is accepted; browser evidence and environment limitations are recorded separately. M5 supplies handoff documentation, clean-checkout native evidence, bounded measurements and draft application materials. A18 remains partial while Docker and hosted CI are unverified. Outreach still requires explicit authorization.
+
+Dispatcher references: https://docs.bullmq.io/guide/jobs/job-ids and https://docs.bullmq.io/guide/queues/auto-removal-of-jobs
+
+Carried verification item M1-Docker: Docker Compose configuration exists, but reproducible container startup has not been verified because Docker is unavailable in the current execution environment. At the M5 handoff gate Docker is still unavailable; this item remains OPEN / UNPASSED and A18 remains partial. Verify in the first Docker-capable environment. This is an environment-dependent verification gap, not an implementation failure. Native-service tests cannot mark it passed.
+
+M3 implementation note (September 30, 2026): Frozen v1.1 scope and indexes remain unchanged. Processing uses MongoDB-time reservation/claim/publication pipelines, Redis 7.4.6 with BullMQ 6.3.10/ioredis 5.10.0 notifications, and the existing owner-scoped API. See milestone-3-evidence.txt for actual tests and limitations; implementation status is not itself acceptance evidence. M1-Docker remains unverified.
+
+M4 implementation note (September 30, 2026 UTC): React 19.3.0/TypeScript with keycloak-js 26.2.4 implements the existing public SPA configuration, memory-only tokens, three screens and protected API calls. Backend reliability code and realm configuration remain unchanged. See milestone-4-evidence.txt for real-browser workflow evidence, the controlled-visibility-test qualification, and the still-open M1-Docker item. Frozen v1.1 scope remains unchanged.
+
+M5 handoff note (September 30, 2026 UTC): no application source changed. Native clean-checkout unit/API/recovery/browser evidence, bounded A19 measurements, CI configuration, generated API documentation, runbook, article and draft outreach are packaged. A18 remains partial; M1-Docker OPEN / UNPASSED, hosted CI and public deployment not verified. See milestone-5-evidence.txt.

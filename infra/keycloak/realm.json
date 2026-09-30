@@ -1,0 +1,233 @@
+{
+  "realm": "operations-import-desk",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "accessTokenLifespan": 300,
+  "roles": {
+    "client": {
+      "odi-api": [
+        {
+          "name": "operator"
+        },
+        {
+          "name": "viewer"
+        }
+      ]
+    }
+  },
+  "clients": [
+    {
+      "clientId": "odi-api",
+      "enabled": true,
+      "bearerOnly": true,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "odi-web",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://127.0.0.1:5173/callback"
+      ],
+      "webOrigins": [
+        "http://127.0.0.1:5173"
+      ],
+      "fullScopeAllowed": true,
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "name": "roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-client-role-mapper",
+          "config": {
+            "usermodel.clientRoleMapping.clientId": "odi-api",
+            "claim.name": "resource_access.odi-api.roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "odi-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "odi-short",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://127.0.0.1:5173/callback"
+      ],
+      "webOrigins": [
+        "http://127.0.0.1:5173"
+      ],
+      "fullScopeAllowed": true,
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "access.token.lifespan": "1"
+      },
+      "protocolMappers": [
+        {
+          "name": "roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-client-role-mapper",
+          "config": {
+            "usermodel.clientRoleMapping.clientId": "odi-api",
+            "claim.name": "resource_access.odi-api.roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "odi-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "odi-wrong-audience",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://127.0.0.1:5173/callback"
+      ],
+      "webOrigins": [
+        "http://127.0.0.1:5173"
+      ],
+      "fullScopeAllowed": true,
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "name": "roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-client-role-mapper",
+          "config": {
+            "usermodel.clientRoleMapping.clientId": "odi-api",
+            "claim.name": "resource_access.odi-api.roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ],
+      "defaultClientScopes": [
+        "basic"
+      ],
+      "optionalClientScopes": []
+    }
+  ],
+  "users": [
+    {
+      "username": "operator-a",
+      "enabled": true,
+      "email": "operator-a@example.invalid",
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "operator-a",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Local-demo-only-123!",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "odi-api": [
+          "operator"
+        ]
+      }
+    },
+    {
+      "username": "operator-b",
+      "enabled": true,
+      "email": "operator-b@example.invalid",
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "operator-b",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Local-demo-only-123!",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "odi-api": [
+          "operator"
+        ]
+      }
+    },
+    {
+      "username": "viewer",
+      "enabled": true,
+      "email": "viewer@example.invalid",
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "viewer",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Local-demo-only-123!",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "odi-api": [
+          "viewer"
+        ]
+      }
+    },
+    {
+      "username": "no-role",
+      "enabled": true,
+      "email": "no-role@example.invalid",
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "no-role",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Local-demo-only-123!",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {}
+    }
+  ]
+}

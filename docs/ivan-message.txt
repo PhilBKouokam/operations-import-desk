@@ -1,0 +1,11 @@
+DRAFT — use these URLs only after the manual GitHub publication succeeds. Not sent.
+
+Hi Ivan — following up on our conversation about WebCreek’s Junior Full Stack Developer role.
+
+I built this independent project to show how I’d approach a maintainable feature as a junior engineer.
+
+Project: https://github.com/PhilBKouokam/operations-import-desk
+Article: https://github.com/PhilBKouokam/operations-import-desk/blob/main/docs/article.md
+Walkthrough: https://github.com/PhilBKouokam/operations-import-desk/blob/main/docs/presentation/walkthrough.mp4
+
+I’d value feedback from your engineering team.

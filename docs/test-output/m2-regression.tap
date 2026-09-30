@@ -1,0 +1,159 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 test:integration
+> npm run build && node --test --test-reporter=tap --test-timeout=60000 --test-concurrency=1 dist/apps/api/test/integration.test.js
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> operations-import-desk@0.1.0 build
+> tsc -p tsconfig.json
+
+TAP version 13
+# Subtest: A06 integration: concurrent identical requests create one durable import and required indexes
+ok 1 - A06 integration: concurrent identical requests create one durable import and required indexes
+  ---
+  duration_ms: 1560.942353
+  type: 'test'
+  ...
+# Subtest: A06/A15 integration: same bytes owned independently; list/detail expose no foreign imports
+ok 2 - A06/A15 integration: same bytes owned independently; list/detail expose no foreign imports
+  ---
+  duration_ms: 54.029881
+  type: 'test'
+  ...
+# Subtest: A07 integration: proxy discards committed HTTP response; identical resubmission recovers same ID
+ok 3 - A07 integration: proxy discards committed HTTP response; identical resubmission recovers same ID
+  ---
+  duration_ms: 46.998644
+  type: 'test'
+  ...
+# Subtest: A15 integration: real code/PKCE tokens map operator/viewer; no-role and viewer writes denied
+ok 4 - A15 integration: real code/PKCE tokens map operator/viewer; no-role and viewer writes denied
+  ---
+  duration_ms: 43.924444
+  type: 'test'
+  ...
+# Subtest: A15 integration: absent, malformed, tampered, wrong audience, ID and wrong-algorithm tokens rejected
+ok 5 - A15 integration: absent, malformed, tampered, wrong audience, ID and wrong-algorithm tokens rejected
+  ---
+  duration_ms: 36.344012
+  type: 'test'
+  ...
+# Subtest: A15 integration: wrong issuer rejected using real Keycloak discovery/JWKS under alternate host
+ok 6 - A15 integration: wrong issuer rejected using real Keycloak discovery/JWKS under alternate host
+  ---
+  duration_ms: 28.006932
+  type: 'test'
+  ...
+# Subtest: A15 integration: real short-lived Keycloak access token rejected after expiry plus tolerance
+ok 7 - A15 integration: real short-lived Keycloak access token rejected after expiry plus tolerance
+  ---
+  duration_ms: 30596.030807
+  type: 'test'
+  ...
+# Subtest: M2 integration: pagination stable, bounded and owner-scoped; invalid queries use safe envelopes
+ok 8 - M2 integration: pagination stable, bounded and owner-scoped; invalid queries use safe envelopes
+  ---
+  duration_ms: 55.923714
+  type: 'test'
+  ...
+# Subtest: A04/A16 HTTP integration: empty multipart rejected before persistence
+ok 9 - A04/A16 HTTP integration: empty multipart rejected before persistence
+  ---
+  duration_ms: 30.98544
+  type: 'test'
+  ...
+# Subtest: A04/A16 HTTP integration: unknown field rejected before persistence
+ok 10 - A04/A16 HTTP integration: unknown field rejected before persistence
+  ---
+  duration_ms: 25.479551
+  type: 'test'
+  ...
+# Subtest: A04/A16 HTTP integration: wrong file field rejected before persistence
+ok 11 - A04/A16 HTTP integration: wrong file field rejected before persistence
+  ---
+  duration_ms: 25.508765
+  type: 'test'
+  ...
+# Subtest: A04/A16 HTTP integration: two files rejected before persistence
+ok 12 - A04/A16 HTTP integration: two files rejected before persistence
+  ---
+  duration_ms: 27.044302
+  type: 'test'
+  ...
+# Subtest: A04/A16 HTTP integration: oversized file rejected before persistence
+ok 13 - A04/A16 HTTP integration: oversized file rejected before persistence
+  ---
+  duration_ms: 23.939131
+  type: 'test'
+  ...
+# Subtest: A04/A16 HTTP integration: malformed UTF-8 rejected before persistence
+ok 14 - A04/A16 HTTP integration: malformed UTF-8 rejected before persistence
+  ---
+  duration_ms: 29.9954
+  type: 'test'
+  ...
+# Subtest: A04/A16 HTTP integration: wrong CSV header rejected before persistence
+ok 15 - A04/A16 HTTP integration: wrong CSV header rejected before persistence
+  ---
+  duration_ms: 22.177706
+  type: 'test'
+  ...
+# Subtest: A04/A16 HTTP integration: bad CSV quotes rejected before persistence
+ok 16 - A04/A16 HTTP integration: bad CSV quotes rejected before persistence
+  ---
+  duration_ms: 23.319843
+  type: 'test'
+  ...
+# Subtest: A04/A16 HTTP integration: unsupported extension rejected before persistence
+ok 17 - A04/A16 HTTP integration: unsupported extension rejected before persistence
+  ---
+  duration_ms: 20.491696
+  type: 'test'
+  ...
+# Subtest: A04/A16 HTTP integration: exact file limit accepted; oversized envelope and malformed multipart rejected
+ok 18 - A04/A16 HTTP integration: exact file limit accepted; oversized envelope and malformed multipart rejected
+  ---
+  duration_ms: 111.170887
+  type: 'test'
+  ...
+# Subtest: A16 HTTP integration: chunked envelope cap applies without Content-Length
+ok 19 - A16 HTTP integration: chunked envelope cap applies without Content-Length
+  ---
+  duration_ms: 34.038269
+  type: 'test'
+  ...
+# Subtest: M2 integration: 10 uploads/IP/minute; safe errors; processing endpoints reject unavailable results
+ok 20 - M2 integration: 10 uploads/IP/minute; safe errors; processing endpoints reject unavailable results
+  ---
+  duration_ms: 68.545771
+  type: 'test'
+  ...
+# Subtest: M2 integration: API restart preserves import and duplicate identity
+ok 21 - M2 integration: API restart preserves import and duplicate identity
+  ---
+  duration_ms: 47.595907
+  type: 'test'
+  ...
+# Subtest: M2 integration: incompatible unique index fails startup rather than accepting uploads
+ok 22 - M2 integration: incompatible unique index fails startup rather than accepting uploads
+  ---
+  duration_ms: 25.380385
+  type: 'test'
+  ...
+# Subtest: M2 integration: unavailable database connection returns safe 503 rather than success
+ok 23 - M2 integration: unavailable database connection returns safe 503 rather than success
+  ---
+  duration_ms: 61.828612
+  type: 'test'
+  ...
+1..23
+# tests 23
+# suites 0
+# pass 23
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 33339.238039
+Real-service diagnostic logs: /tmp/odi-m2-integration.H2XVZh

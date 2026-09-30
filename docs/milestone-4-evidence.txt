@@ -1,0 +1,115 @@
+OPERATIONS IMPORT DESK — MILESTONE 4 EVIDENCE
+September 30, 2026 UTC
+
+1. IMPLEMENTED UI BEHAVIOR
+
+Only the approved React/TypeScript Submit, Import History and Import Details screens were added. Existing API, worker, input rules and Keycloak realm configuration are unchanged. No reliability-architecture correction was necessary. No dashboard, search/filter, charts, notifications, WebSockets, editing, deletion, cancellation or admin feature was added. M5 article/outreach/deployment work has not begun.
+
+Submit shows the exact six-column schema, row rules and file/record/cell limits, plus the previously planned valid/invalid sample downloads. Operators select one file; viewers see a read-only explanation. Durable success appears only after the API response. A new import and an identical-byte duplicate have different messages; the returned server state is shown without assuming processing started. Structural errors map safe API codes to actionable guidance, associated with the file control. Unknown upload outcomes instruct identical-file resubmission to recover the existing import.
+
+History uses the owner-scoped API, newest first, with filename, submitted time, text state, completed counts and cursor pagination. Loading, empty, unavailable and error states are explicit. Details show run/attempt, state and timestamps, safe failure summaries, counts, paginated rejected-row explanations and authorized downloads. Retry is shown only for an API-confirmed operator when canRetry is true; the UI sends expectedRun:1 and refetches durable state rather than incrementing counters locally.
+
+Details use a dedicated polling hook: one request at a time, three-second scheduling, no hidden-document timer, no terminal polling, abort on departure, and blocked polling for session/403/404 errors. Temporary fetch failure preserves the last confirmed document and displays “Status unavailable; last updated …”. Elapsed time never implies queue outage, worker failure or percentage progress.
+
+Browser authentication uses keycloak-js 26.2.4 with the existing public odi-web client, Authorization Code + PKCE S256, provider redirect, adapter-managed state/nonce, memory-only access/refresh tokens and provider-session recovery on reload. No client secret or localStorage token persistence is introduced. The only application sessionStorage value is a validated same-origin return path. API calls use the adapter's access token, never its ID token. The UI derives role from /v1/me and does not display the subject.
+
+Accessibility includes native controls, associated labels/descriptions, visible keyboard focus, skip navigation, route-change heading focus, semantic table headers/caption, text status labels, plain-text rejected values and restrained announcements. No uploaded HTML is interpreted. Protected downloads use authorized fetch and a short-lived blob URL; raw exceptions, JWTs and Mongo/internal fields are not rendered.
+
+2. EXACT COMMANDS RUN AND ACTUAL RESULTS
+
+Working directory: /tmp/odi-workspace/operations-import-desk
+Environment: Node 24.19.0; npm 11.9.0; MongoDB 8.0.15; Redis 7.4.6; Keycloak 26.4.0; Java 17.0.20. UI: React/React DOM 19.3.0, TypeScript 5.9.3, Vite 8.3.1, keycloak-js 26.2.4. Tests: Playwright 1.63.0, @axe-core/playwright 4.11.1, real Chromium 153.0.8010.0 from @sparticuz/chromium 153.0.0.
+
+  npm install
+PASS: 27 packages added; UI/runtime/test dependencies pinned in the lockfile.
+
+  npm run typecheck
+  npm run check
+Final PASS: strict backend and web TypeScript checks; build; all 41 retained unit tests passed, zero failures/skips. Final unit duration 401.573393 ms. These 41 are existing input/API/worker unit tests, not newly invented UI component evidence. Early typechecks caught unknown-valued conditional JSX and missing Node types in the Playwright config; both were corrected before final checks.
+
+  npm run build:web
+PASS: tsc --noEmit and Vite production build. Final build: 25 modules; JS 266.17 kB (82.60 kB gzip), CSS 5.65 kB (2.02 kB gzip). This is a local production asset build, not a deployed application.
+
+  npm audit --omit=dev
+PASS: 0 known production dependency vulnerabilities reported. This is an advisory check, not a comprehensive security audit.
+
+  npx playwright install chromium
+FAILED: the configured download endpoint returned a 195-byte 'Site Unavailable' HTML page instead of a browser ZIP. It was not treated as a browser test pass.
+
+Fallback browser provisioning actually run:
+  npm install --prefix /tmp/odi-m4-chromium @sparticuz/chromium
+PASS: 18 runtime-only packages installed; resolved Chromium package 153.0.0. This temporary browser distribution is not a product dependency.
+The package's automatic extraction first failed with EINVAL on archive chown in this environment. The four bundled Brotli assets were decompressed with Node's brotliDecompressSync; the tar assets were then extracted without restoring archive ownership:
+  tar --no-same-owner -xf /tmp/fonts.tar -C /tmp/fonts
+  tar --no-same-owner -xf /tmp/swiftshader.tar -C /tmp
+  tar --no-same-owner -xf /tmp/al2023.tar -C /tmp/al2023
+  /tmp/chromium --version
+PASS: Chromium 153.0.8010.0. This was a real executable and real browser, not DOM emulation.
+
+Full real-service browser command actually run:
+  MONGOD_BIN=/tmp/odi-workspace/m2-runtime/mongodb-linux-x86_64-ubuntu2204-8.0.15/bin/mongod KEYCLOAK_HOME=/tmp/odi-workspace/m2-runtime/keycloak-26.4.0 REDIS_SERVER_BIN=/tmp/redis-7.4.6/src/redis-server PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/tmp/chromium bash scripts/test-browser-services.sh
+The harness builds backend/web, starts native MongoDB/Redis/Keycloak/API/worker and the built Vite preview, then executes:
+  npm run test:m4
+  playwright test --config=apps/web/playwright.config.ts
+Final PASS: 9/9 browser cases, zero failed/skipped, approximately 1.1 minutes for browser tests (service startup/build additional). Raw final output: docs/test-output/m4-browser-final.txt.
+Initial run: 6/7 passed; the keyboard file-chooser wait timed out. A targeted rerun after correcting the interaction passed:
+  MONGOD_BIN=/tmp/odi-workspace/m2-runtime/mongodb-linux-x86_64-ubuntu2204-8.0.15/bin/mongod KEYCLOAK_HOME=/tmp/odi-workspace/m2-runtime/keycloak-26.4.0 REDIS_SERVER_BIN=/tmp/redis-7.4.6/src/redis-server PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/tmp/chromium bash scripts/test-browser-services.sh --grep 'operator: keyboard'
+PASS: 1/1 selected browser case, 7.3 seconds including test setup. Two further browser cases were then added, and all nine passed in the final full run.
+
+Retained M2 real-service regression command:
+  MONGOD_BIN=/tmp/odi-workspace/m2-runtime/mongodb-linux-x86_64-ubuntu2204-8.0.15/bin/mongod KEYCLOAK_HOME=/tmp/odi-workspace/m2-runtime/keycloak-26.4.0 bash scripts/test-real-services.sh
+PASS: 23/23 real MongoDB/Keycloak tests; zero failures/skips; 34,698.900977 ms excluding service startup/build. M2 token validation was not weakened.
+
+  npm ls mongodb bullmq ioredis @nestjs/core jose --depth=1
+Confirmed retained backend versions: MongoDB driver 7.7.0, BullMQ 6.3.10, ioredis 5.10.0, NestJS core 11.2.6, jose 6.2.12.
+  git diff --name-only -- apps/api apps/worker packages/input infra/keycloak
+No changed backend/input/realm files.
+  git diff --check
+PASS: no whitespace errors.
+
+3. A17 EVIDENCE — DISTINCT LEVELS
+
+Unit/component: 41 retained backend/input/worker unit tests passed. No standalone React component suite is claimed. The UI evidence comes from real browser interactions with the actual production asset build and real services.
+
+Real-browser workflows (all passed):
+- Operator keyboard navigation through History, Submit, native file selection, submission, Details and return to History. Visible focus and heading focus asserted. Worker pause makes PENDING observable; API-confirmed acceptance precedes success; resumed real worker completes it.
+- Authorization request uses code flow, S256 challenge, state and nonce. Storage inspection finds no JWT persisted in localStorage/sessionStorage. Reload reauthenticates through the real provider session and restores the same details route/results.
+- Mixed rows show actionable field errors. All-invalid input completes with errors and has a header-only accepted CSV. Identical-byte renamed upload recovers the same import ID with explicit duplicate messaging.
+- Uploaded <img ... onerror=...> is visible literal text; no img DOM node or handler execution occurs. Real protected CSV downloads contain only the correct rows and neutralize formula prefixes.
+- Structural rejection is connected to the file control, creates no Mongo import, and displays safe corrective guidance. History loading, empty and request-unavailable states are observed.
+- Viewer reads/downloads its own seeded import, sees no private operator import, has no upload control and no retry control even for its own eligible failure. Operator B follows operator A's direct URL and receives the real API's 404 presentation without filename/results.
+- Eligible operator retry uses keyboard activation, creates run 2, removes the retry control and completes after worker resume. Nonretryable failure has no retry control.
+- Browser networking is actually taken offline. Details retain last confirmed PENDING status and display the required unavailable message. Reconnection refetches durable state. Terminal polling stops for a measured 6.5-second observation; leaving details also stops requests.
+- Twenty-one owner fixtures exercise next/previous cursor pages, newest-first ordering and completed counts. A 390px viewport has no document-level horizontal overflow; the table scrolls in its named region.
+- Advancing only the browser clock causes the adapter to perform a real refresh-token grant; the real API accepts the new access token. A separate real no-role account receives API denial and no application navigation.
+
+Controlled visibility test, explicitly qualified: this headless Chromium reports background tabs and a requested minimized window as document.visibilityState='visible'. A dedicated browser case overrides only that DOM signal and dispatches visibilitychange. It observes >=2.9 seconds between scheduled requests, zero new requests during 6.5 seconds of hidden state, and resumed requests on visibility restoration. API responses, tokens, database and transport remain real. This is evidence of the visibility-gating implementation, not evidence of native operating-system tab/minimize lifecycle behavior.
+
+Accessibility: axe ran on rendered history (empty/populated and mobile), submit (normal/error/viewer) and details (successful/mixed) views using WCAG 2 A/AA and 2.1 AA tags. Zero detected violations in those scans. Explicit keyboard tests supplement the scans. Screenshots for the three screens/results were inspected and are retained in docs/test-output/m4-*.png. This does not claim exhaustive WCAG conformance or manual screen-reader qualification.
+
+A17 status: the tested Chromium workflow targets pass with the above visibility/platform qualification. Do not describe this as universal browser, native background-tab, or assistive-technology qualification.
+
+4. BROWSER/OIDC/AUTH ISSUES FOUND AND CORRECTED
+
+- Standard Playwright browser download was unavailable. Installed a real Chromium distribution through the accessible package registry instead; corrected an environment-specific archive-ownership extraction failure. No mock browser substituted for evidence.
+- Initial UI compilation rejected unknown-valued JSX conditional expressions and a missing Node type declaration for test configuration. Explicit Boolean guards and the config type declaration resolved these.
+- The first keyboard flow timed out awaiting the native file chooser after Enter. The test now restores the browser page to the foreground after the accessibility scan and activates the focused native file control with Space. The targeted and full keyboard tests passed without introducing a custom picker or mouse-only workaround.
+- No OIDC realm, API signature/issuer/audience/type checks, role mapping or backend ownership rules needed modification. Real redirect, reload and token refresh all passed.
+
+5. UNRESOLVED CORRECTNESS / ACCESSIBILITY / SECURITY ITEMS
+
+No known implementation blocker was found in the tested M4 workflows. Verification limits remain: native background-tab/minimize visibility behavior is unverified in this headless distribution; Firefox/Safari, physical mobile devices and manual screen-reader testing were not performed. Automated axe results are scoped to the rendered states tested. These limits must accompany A17 claims. Local synthetic tests do not establish public-host security, deployment readiness or production capacity.
+
+6. M1-DOCKER
+
+OPEN — environment-dependent and explicitly UNPASSED. Docker Compose configuration exists, but reproducible container startup has not been verified because Docker is unavailable in this execution environment. Native-service and browser tests do not close the item. Verify in the first Docker-capable environment, no later than the M5 clean-checkout/handoff gate.
+
+7. LEARNING NOTES
+
+React state should reflect the last confirmed server snapshot, not manufacture processing transitions. Separating the polling hook from rendering makes visibility, cancellation, terminal states and stale-response handling easier to review. Re-fetching after mutations/reload recovers the durable result without duplicating business state in the browser.
+
+OIDC browser integration requires care at the redirect boundary: exact registered origins/callbacks, PKCE, adapter-managed state/nonce, memory-only tokens, access-token refresh, and a validated return path. Provider-session recovery allows reload without persisting tokens. UI role gates improve usability; the API still decides authorization.
+
+Accessibility combines semantics and interaction: associated errors, a sensible focus destination after navigation, keyboard activation of native controls, named table regions, non-color status text, and announcements that change only when useful. Automated scans and headless browser tests provide useful evidence while leaving explicit platform/assistive-technology limits.
+
+This is AI-assisted implementation for a junior applicant seeking a first professional software engineering role. It does not claim independent mastery or professional experience with unfamiliar technologies. Senior review would be valuable for the OIDC lifecycle, cross-browser visibility behavior and accessibility validation.
