@@ -2,7 +2,7 @@
 
 ## Checkout and prerequisites
 
-Clone the supplied Git bundle (`git clone /absolute/path/operations-import-desk-m5.bundle operations-import-desk`) or extract the source ZIP and enter its directory. No `.env`, installed dependencies or runtime database files are included. The bundle includes commit history; the ZIP is source only.
+Clone the supplied Git bundle (`git clone /absolute/path/operations-import-desk-public.bundle operations-import-desk`) or extract the source ZIP and enter its directory. No `.env`, installed dependencies or runtime database files are included. The bundle includes commit history; the ZIP is source only.
 
 Native provisioning targets Ubuntu 22.04/24.04-compatible x86_64 Linux with OpenSSL 3. Install Git, curl, tar/gzip, make, GCC, pkg-config, Java 17 and Node 24/npm 11.9.0 using your normal OS/runtime tooling. macOS, Windows and ARM binaries are not covered by this installer. Allow loopback ports 27018, 6380, 8081, 3000, 3001, 5173; do not run suites simultaneously. Test-only M3 uses 27019/6381; measurement uses 27021/6382. Check for existing listeners before starting; do not terminate unrelated services.
 

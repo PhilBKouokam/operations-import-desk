@@ -9,9 +9,12 @@ Install Git and GitHub CLI if needed. Download `operations-import-desk-public.bu
 ```sh
 git clone operations-import-desk-public.bundle operations-import-desk
 cd operations-import-desk
+git remote remove origin
 gh auth login
 gh repo create PhilBKouokam/operations-import-desk --public --source=. --remote=origin --push --description "Production-style React/NestJS import workflow demonstrating durable background processing, OIDC authorization, recovery, and handoff practices."
 ```
+
+Removing `origin` removes only the local bundle path created by `git clone`; the publish command then sets the real GitHub origin.
 
 `gh auth login` is unnecessary if already authenticated as PhilBKouokam. If a repository of this name already exists, stop and inspect it; do not force-push or overwrite it. The original M5 bundle is not the public release bundle: use this hygiene-reviewed snapshot.
 
